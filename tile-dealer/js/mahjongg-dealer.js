@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rank = tileCode[0];
                 const suit = tileCode[1];
                 let suitName = '';
-                tileDiv.textContent = tileCode; // Fallback
                 tileDiv.className = 'tile';
                 
                 // Add touch feedback
