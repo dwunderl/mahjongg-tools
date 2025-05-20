@@ -1,5 +1,24 @@
+// Add touch event polyfill for desktop browsers
+if (!('ontouchstart' in window)) {
+    const style = document.createElement('style');
+    style.textContent = `
+        @media (hover: hover) {
+            .tile:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Mahjongg Dealer script loaded.');
+    
+    // Add touch feedback class to body for mobile detection
+    if ('ontouchstart' in window) {
+        document.body.classList.add('touch-device');
+    }
 
     const suits = ['C', 'B', 'D']; // Crack, Bam, Dot
     const honors = ['N', 'E', 'S', 'W', 'RD', 'GD', 'WD']; // Winds and Dragons
@@ -82,6 +101,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rank = tileCode[0];
                 const suit = tileCode[1];
                 let suitName = '';
+                tileDiv.textContent = tileCode; // Fallback
+                tileDiv.className = 'tile';
+                
+                // Add touch feedback
+                tileDiv.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.classList.add('tile-touched');
+                }, { passive: false });
+                
+                tileDiv.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('tile-touched');
+                }, { passive: false });
 
                 if (suit === 'C') { suitName = 'Cra'; specificClass = 'tile-crack'; }
                 else if (suit === 'B') { suitName = 'Bam'; specificClass = 'tile-bam'; }
