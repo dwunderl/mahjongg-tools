@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg Tile Dealer</title>
+    <link rel="stylesheet" href="css/mahjongg-styles.css">
+    <style>
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="../" class="back-link">← Back to Mahjongg Tools</a>
+    <header>
+        <h1>Mahjongg Tile Dealer (American)</h1>
+    </header>
+    <main>
+        <div id="controls">
+            <button id="deal-13-btn">Deal 13 Tiles</button>
+            <button id="deal-14-btn">Deal 14 Tiles</button>
+            <button id="sortSuitRankBtn">Sort: Suit/Rank</button>
+            <button id="sortRankSuitBtn">Sort: Rank/Suit</button>
+            <button id="reset-deck-btn">Reset Deck</button>
+            <p id="remaining-tiles-p">Tiles remaining: -</p>
+        </div>
+        <div id="hand-display-area">
+            <h2>Your Hand:</h2>
+            <div id="dealt-hand-container">
+                <!-- Dealt tiles will appear here -->
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>Mahjongg Tile Utility</p>
+    </footer>
+    <script src="js/mahjongg-dealer.js"></script>
+</body>
+</html>

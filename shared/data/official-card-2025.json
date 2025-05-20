@@ -1,0 +1,69 @@
+{
+  "version": "2025",
+  "name": "Official Standard Hands and Rules 2025",
+  "description": "Official Mahjongg card for 2025",
+  "hands": [
+    {
+      "id": "like-numbers",
+      "name": "Like Numbers",
+      "description": "Four of a kind (like numbers) and a pair",
+      "sections": [
+        {
+          "name": "Singles and Pairs",
+          "hands": [
+            {
+              "name": "2025",
+              "tiles": [
+                { "type": "like", "count": 4, "value": "2025" },
+                { "type": "pair", "value": "any" }
+              ],
+              "description": "Four of a kind (2025) and a pair"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2468",
+      "name": "2468",
+      "description": "2468 in three suits, no 1's or 9's, no NEWS, no Dragons, no Flowers",
+      "sections": [
+        {
+          "name": "Quints",
+          "hands": [
+            {
+              "name": "2468 Quint",
+              "tiles": [
+                { "type": "quint", "suit": "any", "value": "2468" },
+                { "type": "pair", "suit": "any", "value": "any" }
+              ],
+              "description": "Five of a kind (2468) and any pair"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "consecutive-run",
+      "name": "Consecutive Run",
+      "description": "Three consecutive runs in the same suit",
+      "sections": [
+        {
+          "name": "Standard",
+          "hands": [
+            {
+              "name": "Consecutive Run",
+              "tiles": [
+                { "type": "pung", "suit": "same", "value": "consecutive" },
+                { "type": "pung", "suit": "same", "value": "consecutive+1" },
+                { "type": "pung", "suit": "same", "value": "consecutive+2" },
+                { "type": "pair", "suit": "any", "value": "any" }
+              ],
+              "description": "Three consecutive pungs in the same suit and any pair"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
