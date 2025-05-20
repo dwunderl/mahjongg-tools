@@ -1,6 +1,6 @@
 # Mahjongg Tools
 
-A collection of web-based tools for American Mahjongg players.
+A collection of web-based tools for American Mahjongg players, fully responsive and mobile-friendly.
 
 ## 🎴 Tools
 
@@ -10,12 +10,21 @@ A collection of web-based tools for American Mahjongg players.
 - Sort hands by Suit/Rank or Rank/Suit
 - Reset the deck at any time
 - Visual representation of tiles
+- Mobile-optimized with touch support
 
 ### 2. Card Editor (Coming Soon)
 - Create and edit Mahjongg card definitions
 - Define custom hands and patterns
 - Save and load card configurations
 - Validate against Mahjongg rules
+
+## 📱 Mobile Support
+
+The application is fully responsive and works great on mobile devices:
+- Touch-optimized controls
+- Larger tap targets for better usability
+- Visual feedback on touch interactions
+- Proper viewport scaling for all screen sizes
 
 ## 🚀 Quick Start
 
