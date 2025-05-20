@@ -1,24 +1,55 @@
-# Mahjongg Tile Dealer
+# Mahjongg Tools
 
-A simple web-based tool to simulate dealing a hand of American Mahjongg tiles.
+A collection of web-based tools for American Mahjongg players.
 
-## Features
+## Tools
 
-*   Represents a full 152-tile American Mahjongg set.
-*   Deals a random hand of 13 or 14 tiles.
-*   Displays the number of tiles remaining in the deck after each deal.
-*   Sorts the displayed hand by Suit/Rank or by Rank/Suit.
-*   Provides a 'Reset Deck' button to start a new game with a full deck.
-*   Deal buttons automatically disable when insufficient tiles remain for a deal.
-*   Visual representation of tiles using HTML and CSS.
+### 1. Tile Dealer
+- Deals random hands of 13 or 14 tiles from a standard 152-tile American Mahjongg set
+- Displays remaining tile count
+- Sort hands by Suit/Rank or Rank/Suit
+- Reset the deck at any time
 
-## How to Use
+### 2. Card Editor (Coming Soon)
+- Create and edit Mahjongg card definitions
+- Define custom hands and patterns
+- Save and load card configurations
 
-1.  Open `index.html` in a web browser.
-2.  Click the "Deal 13 Tiles" or "Deal 14 Tiles" button to see a randomly dealt hand. The number of tiles remaining in the deck will update.
-3.  Click the "Sort: Suit/Rank" or "Sort: Rank/Suit" buttons to reorder your hand.
-4.  Click the "Reset Deck" button to clear the current hand and start with a fresh, full deck of 152 tiles.
+## Project Structure
 
-## Future Ideas
-*   Using images for higher-resolution tile graphics.
-*   Implementing specific Mahjongg hand analysis (separate project branch).
+```
+mahjongg-tools/
+├── tile-dealer/      # The Tile Dealer application
+├── card-editor/      # Card Editor (in development)
+├── shared/           # Shared code and resources
+│   ├── js/           # Shared JavaScript modules
+│   └── data/         # Card definitions and other data
+└── index.html        # Main entry point
+```
+
+## Getting Started
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/dwunderl/mahjongg-tools.git
+   ```
+
+2. Open `index.html` in a web browser to access all tools.
+
+## Development
+
+### Tile Dealer
+- Located in `/tile-dealer`
+- Built with vanilla JavaScript, HTML, and CSS
+
+### Card Editor (Planned)
+- Will be built as a separate application
+- Will share common tile definitions and utilities with the Tile Dealer
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
