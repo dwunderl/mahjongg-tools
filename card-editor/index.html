@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Mahjongg Card Editor</title>
     <link rel="stylesheet" href="../css/mobile.css">
+    <link rel="stylesheet" href="css/styles.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,15 +33,39 @@
     </style>
 </head>
 <body>
-    <a href="../index.html" class="back-link">← Back to Mahjongg Tools</a>
-    <h1>Mahjongg Card Editor</h1>
-    
-    <div class="container">
-        <p>Card Editor coming soon! This is where you'll be able to create and edit Mahjongg card definitions.</p>
+    <div class="header">
+        <div class="container">
+            <h1>Mahjongg Card Editor</h1>
+        </div>
     </div>
 
-    <script>
-        // Card Editor JavaScript will go here
-    </script>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Mahjongg Tools</a>
+        
+        <div class="toolbar">
+            <input type="text" id="card-name" placeholder="Card Name" value="New Card">
+            <input type="number" id="card-year" min="1900" max="2100" value="2024">
+            <button id="new-hand-btn" class="btn">New Hand</button>
+            <button id="save-btn" class="btn btn-primary">Save Card</button>
+        </div>
+
+        <div class="editor-container">
+            <div class="sidebar">
+                <h3>Tile Palette</h3>
+                <div id="tile-palette" class="tile-palette">
+                    <!-- Tiles will be added here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="main-content">
+                <h3>Card Preview</h3>
+                <div id="card-preview" class="card-preview">
+                    <!-- Card preview will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
