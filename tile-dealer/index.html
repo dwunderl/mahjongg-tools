@@ -9,6 +9,319 @@
     <link rel="stylesheet" href="../css/mobile.css">
     <link rel="stylesheet" href="css/mahjongg-styles.css">
     <style>
+        /* Ensure the hand container is visible */
+        #dealt-hand-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 100px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+        }
+
+        /* Responsive tile styles */
+        :root {
+            --tile-width: 38px;
+            --tile-height: 57px;
+            --tile-font-size: 14px;
+            --tile-suit-size: 9px;
+            --tile-margin: 0;
+            --tile-border-radius: 6px;
+        }
+        
+        /* Tile container */
+        #tiles-row {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            gap: 1px;
+            padding: 5px 0;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            scrollbar-width: none; /* Hide scrollbar for Firefox */
+            -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+            flex-shrink: 1;
+            min-width: 0; /* Allow flex items to shrink below their content size */
+        }
+        
+        /* Hand display area */
+        .hand-display-area {
+            margin: 20px 0;
+            padding: 0 10px;
+        }
+
+        /* Container for the hand */
+        .hand-container {
+            width: 100%;
+            margin: 10px 0;
+            padding: 5px 0;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Debug container */
+        #debug-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            background: white;
+            border: 2px solid red;
+            padding: 15px;
+            z-index: 10000;
+            max-height: 200px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .debug-header h3 {
+            margin: 0;
+            color: red;
+        }
+        
+        #clear-debug {
+            padding: 2px 8px;
+            font-size: 12px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        #clear-debug:hover {
+            background: #d32f2f;
+        }
+        
+        /* Hide scrollbar for Chrome/Safari */
+        #tiles-row::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Tile styles */
+        .tile {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: var(--tile-width);
+            height: var(--tile-height);
+            min-width: 0; /* Allow tiles to shrink below their base size */
+            background: white;
+            border: 1px solid #333;
+            border-radius: var(--tile-border-radius);
+            margin: 0;
+            font-weight: bold;
+            font-size: var(--tile-font-size);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
+            text-align: center;
+            line-height: 1;
+            padding: 2px;
+            transform: scale(0.98); /* Slight scale to ensure tiles fit */
+        }
+        
+        /* Special styling for wind tiles */
+        /* Numbered tiles */
+        .tile[data-suit="C"],
+        .tile[data-suit="B"],
+        .tile[data-suit="D"] {
+            font-size: calc(var(--tile-font-size) * 1.5);
+            font-weight: 900;
+            text-transform: uppercase;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 10px;
+        }
+        
+        /* Special styling for wind tiles */
+        .tile[data-suit="N"],
+        .tile[data-suit="E"],
+        .tile[data-suit="S"],
+        .tile[data-suit="W"] {
+            font-size: calc(var(--tile-font-size) * 1.5);
+            font-weight: 900;
+            text-transform: uppercase;
+            position: relative;
+            padding-top: 10px;
+        }
+        
+        /* Add "WIND" text to wind tile top-left corner */
+        .tile[data-suit="N"]::before,
+        .tile[data-suit="E"]::before,
+        .tile[data-suit="S"]::before,
+        .tile[data-suit="W"]::before {
+            content: 'WIND';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            font-size: calc(var(--tile-suit-size) * 0.9);
+            font-weight: bold;
+            opacity: 0.8;
+            line-height: 1;
+        }
+
+        /* Color coding for different tile types */
+        .tile[data-suit="C"] { 
+            background: linear-gradient(135deg, #ffdddd, #ffbbbb);
+            border-color: #cc9999;
+        } /* Crack - light red */
+        
+        .tile[data-suit="B"] { 
+            background: linear-gradient(135deg, #ddffdd, #bbffbb);
+            border-color: #99cc99;
+        } /* Bam - light green */
+        
+        .tile[data-suit="D"] { 
+            background: linear-gradient(135deg, #ddddff, #bbbbff);
+            border-color: #9999cc;
+        } /* Dot - light blue */
+        
+        .tile[data-suit="N"],
+        .tile[data-suit="E"],
+        .tile[data-suit="S"],
+        .tile[data-suit="W"] { 
+            background: linear-gradient(135deg, #ffffaa, #ffeb3b);
+            border-color: #ffc107;
+            color: #333;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        } /* Winds - bright yellow */
+        
+        .tile[data-suit="RD"] { 
+            background: linear-gradient(135deg, #ffbbbb, #ff9999);
+            color: #cc0000;
+            border-color: #cc6666;
+        } /* Red Dragon */
+        
+        .tile[data-suit="GD"] { 
+            background: linear-gradient(135deg, #bbffbb, #99ff99);
+            color: #006600;
+            border-color: #66cc66;
+        } /* Green Dragon */
+        
+        .tile[data-suit="WD"] { 
+            background: linear-gradient(135deg, #bbbbff, #9999ff);
+            color: #0000cc;
+            border-color: #6666cc;
+        } /* White Dragon */
+        
+        .tile[data-suit="FL"] { 
+            background: linear-gradient(135deg, #ffccff, #ff99ff);
+            border-color: #cc99cc;
+            font-size: calc(var(--tile-font-size) * 2.5); /* Larger flower icon */
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        } /* Flowers - light pink */
+        
+        .tile[data-suit="JK"] { 
+            background: linear-gradient(135deg, #222, #000);
+            color: gold;
+            border-color: #ffd700;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+            font-size: calc(var(--tile-font-size) * 2.8); /* Even larger joker icon */
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        } /* Jokers - black with gold text */
+        
+        /* Corner indicators */
+        .tile[data-corner]::before {
+            content: attr(data-corner);
+            font-size: calc(var(--tile-suit-size) * 0.75);
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            font-weight: bold;
+            z-index: 1;
+            opacity: 0.9;
+            line-height: 1;
+            text-transform: uppercase;
+            max-width: 90%;
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Dragon tile specific styles */
+        .tile[data-corner="Dragon"] {
+            font-size: calc(var(--tile-font-size) * 0.9);
+            line-height: 1.1;
+            text-align: center;
+            padding: 0 3px;
+            word-break: break-word;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Color indicators for suit names */
+        .tile[data-corner="Crack"]::before { 
+            color: #cc0000; /* Red for Cracks */
+            font-size: calc(var(--tile-suit-size) * 0.7); /* Slightly smaller for longer text */
+        }
+        
+        .tile[data-corner="Bam"]::before { 
+            color: #006600; /* Green for Bams */
+        }
+        
+        .tile[data-corner="Dot"]::before { 
+            color: #0000cc; /* Blue for Dots */
+        }
+        
+        /* Special tile indicators */
+        .tile[data-corner="Dragon"]::before {
+            color: #333;
+        }
+        
+        .tile[data-corner="Wind"]::before {
+            color: #8B4513; /* SaddleBrown for Winds */
+        }
+        
+        .tile[data-corner="Flower"]::before {
+            color: #8B008B; /* DarkMagenta for Flowers */
+        }
+        
+        .tile[data-corner="Joker"]::before {
+            color: #FFD700; /* Gold for Joker */
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            font-size: calc(var(--tile-suit-size) * 0.7); /* Slightly smaller for longer text */
+        }
+        
+        /* Remove bottom-right suit indicators */
+        
+        .tile[data-suit="C"]::after { color: #cc0000; }
+        .tile[data-suit="B"]::after { color: #006600; }
+        .tile[data-suit="D"]::after { color: #0000cc; }
+
+        /* Back link styles */
         .back-link {
             display: inline-block;
             margin-bottom: 20px;
@@ -19,6 +332,23 @@
             text-decoration: underline;
         }
     </style>
+    <style>
+        /* Button styles */
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
     <a href="../index.html" class="back-link">← Back to Mahjongg Tools</a>
@@ -27,23 +357,151 @@
     </header>
     <main>
         <div id="controls">
-            <button id="deal-13-btn">Deal 13 Tiles</button>
-            <button id="deal-14-btn">Deal 14 Tiles</button>
-            <button id="sortSuitRankBtn">Sort: Suit/Rank</button>
-            <button id="sortRankSuitBtn">Sort: Rank/Suit</button>
-            <button id="reset-deck-btn">Reset Deck</button>
-            <p id="remaining-tiles-p">Tiles remaining: -</p>
+            <div style="margin-top: 220px; padding: 20px;">
+                <button id="deal-13-btn" style="padding: 10px 15px; margin: 5px; font-size: 16px; cursor: pointer;">Deal 13 Tiles</button>
+                <button id="deal-14-btn" style="padding: 10px 15px; margin: 5px; font-size: 16px; cursor: pointer;">Deal 14 Tiles</button>
+                <button id="reset-deck-btn" style="padding: 10px 15px; margin: 5px; font-size: 16px; cursor: pointer;">Reset Deck</button>
+            </div>
         </div>
-        <div id="hand-display-area">
+        <div class="hand-display-area">
             <h2>Your Hand:</h2>
-            <div id="dealt-hand-container">
-                <!-- Dealt tiles will appear here -->
+            <div class="hand-container">
+                <div id="tiles-row">
+                    <!-- Tiles will be added here by JavaScript -->
+                </div>
+            </div>
+            <div id="remaining-tiles-p">Tiles remaining: <span id="tile-count">0</span></div>
+            <div id="analysis-results" class="analysis-results">
+                <h3>Hand Analysis</h3>
+                <div id="analysis-results-content">
+                    <!-- Analysis results will be displayed here -->
+                </div>
             </div>
         </div>
     </main>
     <footer>
         <p>Mahjongg Tile Utility</p>
     </footer>
-    <script src="js/mahjongg-dealer.js"></script>
+    <!-- Debug container -->
+    <div id="debug-container">
+        <div class="debug-header">
+            <h3>Debug Console</h3>
+            <button id="clear-debug">Clear</button>
+        </div>
+        <div id="debug-messages">Initializing debug console...</div>
+    </div>
+<!-- ... -->
+            const clearBtn = document.getElementById('clear-debug');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    const debugEl = document.getElementById('debug-messages');
+                    if (debugEl) debugEl.innerHTML = '';
+                });
+            }
+        });
+    </script>
+    
+    <!-- Load the dealer script with error handling -->
+    <script>
+        // Simple debug logging function that will be used until the main script loads
+        function debugLog(message) {
+            console.log(message);
+            const debugEl = document.getElementById('debug-messages');
+            if (debugEl) {
+                const line = document.createElement('div');
+                line.textContent = `[${new Date().toISOString()}] ${message}`;
+                debugEl.appendChild(line);
+                debugEl.scrollTop = debugEl.scrollHeight;
+            }
+        }
+        
+        // Make it globally available
+        window.debugLog = debugLog;
+        
+        // Log that we're loading the main script
+        debugLog('Page loading...');
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadMainScript);
+        } else {
+            loadMainScript();
+        }
+        
+        function loadMainScript() {
+            debugLog('DOM loaded, loading main script...');
+            
+            // Add test button handler
+            const testButton = document.getElementById('test-button');
+            if (testButton) {
+                testButton.addEventListener('click', function() {
+                    debugLog('Test button clicked! JavaScript is working!');
+                    testButton.style.background = '#45a049';
+                    setTimeout(() => {
+                        testButton.style.background = '#4CAF50';
+                    }, 200);
+                });
+                debugLog('Test button handler added');
+            } else {
+                debugLog('WARNING: Test button not found');
+            }
+            
+            // Load the main script
+            const script = document.createElement('script');
+            script.src = 'js/simple-dealer.js';
+            script.onload = function() {
+                debugLog('Main script loaded successfully');
+                // Remove test button if main script loads
+                if (testButton) testButton.style.display = 'none';
+            };
+            script.onerror = function() {
+                const errorMsg = 'ERROR: Failed to load main script. Make sure the file exists at: ' + script.src;
+                debugLog(errorMsg);
+                alert(errorMsg);
+                if (testButton) testButton.style.display = 'block';
+            };
+            
+            debugLog('Loading script from: ' + script.src);
+            document.body.appendChild(script);
+        }
+    </script>
+    
+    <!-- Add some basic styles -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        /* Debug info */
+        #debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border: 2px solid red;
+            border-radius: 5px;
+            z-index: 1000;
+            max-height: 120px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        #debug-info h3 {
+            margin: 0 0 10px 0;
+            color: red;
+        }
+        
+        #debug-messages {
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+    </style>
 </body>
 </html>
