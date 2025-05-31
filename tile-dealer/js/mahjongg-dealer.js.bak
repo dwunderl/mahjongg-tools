@@ -1,0 +1,1194 @@
+/**
+ * Mahjongg Dealer Script
+ * Handles tile dealing, hand analysis, and game logic for American Mahjongg
+ */
+
+console.log('Mahjongg dealer script loaded!');
+
+(function() {
+    'use strict';
+
+    // Add touch event polyfill for desktop browsers
+    if (!('ontouchstart' in window)) {
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (hover: hover) {
+                .tile:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /**
+     * Logs messages to both console and debug display
+     * @param {string} message - The message to log
+     */
+    function logToScreen(message) {
+        console.log(message);
+        const debugEl = document.getElementById('debug-messages');
+        if (debugEl) {
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toISOString()}] ${message}`;
+            debugEl.appendChild(line);
+            debugEl.scrollTop = debugEl.scrollHeight;
+        }
+    }
+
+    // Game state variables
+    let fullDeck = [];
+    let currentHand = [];
+    
+    // Export functions to global scope
+    window.logToScreen = logToScreen;
+
+    /**
+     * Analyzes the current hand and identifies sets (pairs, pungs, kongs, chows)
+     * @returns {Object} Analysis results with identified sets
+     */
+    function analyzeHand() {
+        console.log('Analyze hand function called');
+        logToScreen('Analyzing hand...');
+        
+        if (currentHand.length === 0) {
+            logToScreen('No hand to analyze');
+            return { error: 'No hand to analyze' };
+        }
+
+        logToScreen(`Current hand: ${JSON.stringify(currentHand)}`);
+        
+        // Count occurrences of each tile
+        const counts = {};
+        currentHand.forEach(tile => {
+            counts[tile] = (counts[tile] || 0) + 1;
+        });
+        
+        // Initialize analysis result
+        const analysis = {
+            pairs: [],
+            pungs: [],
+            kongs: [],
+            chows: [],
+            singles: [],
+            timestamp: new Date().toISOString()
+        };
+        
+        // Categorize tiles into sets
+        for (const [tile, count] of Object.entries(counts)) {
+            if (count === 4) {
+                analysis.kongs.push(tile);
+            } else if (count === 3) {
+                analysis.pungs.push(tile);
+            } else if (count === 2) {
+                analysis.pairs.push(tile);
+            } else if (count === 1) {
+                analysis.singles.push(tile);
+            }
+        }
+        
+        // Detect chows (sequences of 3+ consecutive numbers in the same suit)
+        const suits = new Set(currentHand.map(tile => tile.slice(-1)));
+        for (const suit of suits) {
+            const suitedTiles = currentHand
+                .filter(tile => tile.endsWith(suit) && !isNaN(tile[0]))
+                .map(tile => parseInt(tile[0]))
+                .sort((a, b) => a - b);
+                
+            if (suitedTiles.length >= 3) {
+                for (let i = 0; i <= suitedTiles.length - 3; i++) {
+                    if (suitedTiles[i] + 1 === suitedTiles[i + 1] && 
+                        suitedTiles[i] + 2 === suitedTiles[i + 2]) {
+                        analysis.chows.push(`${suitedTiles[i]}${suit}`);
+                    }
+                }
+            }
+        }
+        
+        logToScreen(`Analysis complete: ${JSON.stringify(analysis)}`);
+        
+        // Display the results in the UI
+        displayAnalysisResults(analysis);
+
+        return analysis;
+    }
+
+    /**
+     * Displays the analysis results in the UI
+     * @param {Object} analysis - The analysis results to display
+     */
+    function displayAnalysisResults(analysis) {
+        const resultsContainer = document.getElementById('analysis-results-content');
+        if (!resultsContainer) {
+            console.error('Analysis results container not found');
+            return;
+        }
+
+        // Create a timestamp for the analysis
+        const timestamp = analysis.timestamp || new Date().toISOString();
+
+        // Build the HTML for the analysis results
+        let html = `
+            <div class="analysis-result">
+                <h3>Hand Analysis <small>${new Date(timestamp).toLocaleTimeString()}</small></h3>
+                <div class="result-section">
+        `;
+
+        // Helper function to add a section if it has items
+        const addSectionIfNotEmpty = (title, items, className = '') => {
+            if (items && items.length > 0) {
+                html += `
+                    <div class="result-category ${className}">
+                        <h4>${title}</h4>
+                        <div class="tile-group">
+                            ${items.map(item => `<span class="tile-tag">${formatTileDisplay(item)}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // Add each section
+        addSectionIfNotEmpty('Kongs (4 of a kind)', analysis.kongs, 'kongs');
+        addSectionIfNotEmpty('Pungs (3 of a kind)', analysis.pungs, 'pungs');
+        addSectionIfNotEmpty('Pairs (2 of a kind)', analysis.pairs, 'pairs');
+        addSectionIfNotEmpty('Chows (sequences)', analysis.chows, 'chows');
+        addSectionIfNotEmpty('Single Tiles', analysis.singles, 'singles');
+
+        // Close the HTML structure
+        html += `
+                </div>
+            </div>
+        `;
+
+        // Update the container
+        resultsContainer.innerHTML = html;
+
+        // Highlight the tiles in the hand that are part of sets
+        highlightTilesInHand(analysis);
+    }
+    if (analysis.kongs.length === 0 && analysis.pungs.length === 0 && 
+        analysis.pairs.length === 0 && analysis.chows.length === 0) {
+        html = '<div class="no-results">No matching patterns found in hand.</div>';
+    }
+    
+    resultsContainer.innerHTML = html;
+}
+
+    /**
+     * Formats a tile code for display in the UI
+     * @param {string} tileCode - The tile code to format (e.g., '1C', 'RD')
+     * @returns {string} Formatted tile display
+     */
+    function formatTileDisplay(tileCode) {
+        if (!tileCode) return '';
+        
+        // Handle special tiles
+        const specialTiles = {
+            'RD': 'Red Dragon',
+            'GD': 'Green Dragon',
+            'WH': 'White Dragon',
+            'FL': 'Flower',
+            'JK': 'Joker',
+            'JK1': 'Joker 1',
+            'JK2': 'Joker 2'
+        };
+        
+        // Return special tile name if it exists
+        if (specialTiles[tileCode]) {
+            return specialTiles[tileCode];
+        }
+        
+        // Handle numbered tiles (e.g., '1C' -> '1 Character')
+        if (tileCode.length >= 2) {
+            const number = tileCode[0];
+            const suitCode = tileCode[1];
+            const suits = {
+                'C': 'Character',
+                'B': 'Bamboo',
+                'D': 'Dot',
+                'W': 'Wind',
+                'F': 'Dragon'
+            };
+            
+            const suitName = suits[suitCode] || suitCode;
+            return `${number} ${suitName}`;
+        }
+        
+        // Default: return the code as is
+        return tileCode;
+    }
+
+    /**
+     * Highlights tiles in the hand that are part of identified sets
+     * @param {Object} analysis - The analysis results
+     */
+    function highlightTilesInHand(analysis) {
+        // Clear previous highlights
+        document.querySelectorAll('.tile.highlight').forEach(el => {
+            el.classList.remove('highlight');
+        });
+        
+        // Helper function to highlight tiles
+        const highlightTiles = (tileCodes, className) => {
+            tileCodes.forEach(code => {
+                const tiles = document.querySelectorAll(`.tile[data-tile="${code}"]`);
+                tiles.forEach(tile => {
+                    tile.classList.add('highlight', className);
+                });
+            });
+        };
+        
+        // Highlight each category with a different color
+        highlightTiles(analysis.kongs, 'kong-highlight');
+        highlightTiles(analysis.pungs, 'pung-highlight');
+        highlightTiles(analysis.pairs, 'pair-highlight');
+        
+        // For chows, we need to handle sequences differently
+        if (analysis.chows && analysis.chows.length > 0) {
+            analysis.chows.forEach(chow => {
+                const suit = chow[chow.length - 1];
+                const startNum = parseInt(chow);
+                
+                // Highlight the sequence of 3 tiles
+                for (let i = 0; i < 3; i++) {
+                    const tileCode = `${startNum + i}${suit}`;
+                    const tiles = document.querySelectorAll(`.tile[data-tile^="${tileCode}"]`);
+                    tiles.forEach(tile => {
+                        tile.classList.add('highlight', 'chow-highlight');
+                    });
+                }
+            });
+        }
+    }
+    
+
+// Wait for the DOM to be fully loaded before initializing
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        logToScreen(' DOM fully loaded, initializing Mahjongg Dealer...');
+        console.log('Mahjongg Dealer script loaded.');
+    let currentHand = [];
+
+    // Log when the script loads
+    console.log('Mahjongg dealer script loaded');
+    if (window.debugLog) {
+        window.debugLog('Mahjongg dealer script loaded');
+        window.debugLog('Creating initial deck...');
+    }
+
+    // Create initial deck
+    fullDeck = createFullDeck();
+
+    // Log deck creation
+    if (window.debugLog) {
+        window.debugLog(`Initial deck created with ${fullDeck.length} tiles`);
+    }
+    // To store the currently dealt hand
+    const remainingTilesP = document.getElementById('remaining-tiles-p'); // Element to show remaining tiles count
+
+    // Function to create a full Mahjongg deck (152 tiles)
+    function createFullDeck() {
+        const log = (msg) => {
+            console.log(msg);
+            if (window.debugLog) window.debugLog(msg);
+        };
+        
+        log('=== CREATING NEW MAHJONGG DECK ===');
+        const deck = [];
+        let tileCount = 0;
+            deck.push('JK');
+        }
+        
+        console.log(`Deck created with ${deck.length} tiles.`);
+        return deck;
+    }
+
+    // Fisher-Yates Shuffle Algorithm
+    function shuffleDeck(deck) {
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]]; // Swap elements
+        }
+        return deck;
+    },
+
+    // Function to shuffle and deal a specified number of tiles
+    function shuffleAndDeal(numTiles) {
+        const shuffledDeck = shuffleDeck(fullDeck);
+        const dealtHand = shuffledDeck.slice(0, numTiles);
+        fullDeck = shuffledDeck.slice(numTiles); // Update fullDeck
+        return dealtHand;
+    },
+
+    // Function to display the hand in the HTML
+    function displayHand(handArray) {
+        console.log('displayHand called with:', handArray);
+        const dealtHandContainer = document.getElementById('dealt-hand-container');
+        
+        if (!dealtHandContainer) {
+            console.error('dealt-hand-container element not found!');
+            return;
+        }
+        
+        console.log('Clearing previous hand...');
+        dealtHandContainer.innerHTML = ''; // Clear previous hand
+        
+        // Clear any existing highlights when showing new hand
+        document.querySelectorAll('.tile').forEach(tile => {
+            tile.classList.remove('highlighted');
+        });
+        
+        if (!handArray || handArray.length === 0) {
+            console.warn('No tiles to display!');
+            return;
+        }
+        
+
+        handArray.forEach(tileCode => {
+            const tileDiv = document.createElement('div');
+            tileDiv.classList.add('tile');
+            tileDiv.setAttribute('data-tile', tileCode); // Add data attribute for highlighting
+
+            let tileDisplayValue = tileCode; // Fallback for non-suited tiles
+            let specificClass = '';
+
+            if (tileCode.length === 2 && !isNaN(tileCode[0])) { // Numbered suit tiles (e.g., '1C', '9B')
+                const rank = tileCode[0];
+                const suit = tileCode[1];
+                let suitName = '';
+                tileDiv.className = 'tile';
+                
+                // Add touch feedback
+                tileDiv.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    this.classList.add('tile-touched');
+                }, { passive: false });
+                
+                tileDiv.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('tile-touched');
+                }, { passive: false });
+
+                if (suit === 'C') { suitName = 'Cra'; specificClass = 'tile-crack'; }
+                else if (suit === 'B') { suitName = 'Bam'; specificClass = 'tile-bam'; }
+                else if (suit === 'D') { suitName = 'Dot'; specificClass = 'tile-dot'; }
+                
+                // Create separate spans for rank and suit
+                const rankSpan = document.createElement('span');
+                rankSpan.textContent = rank;
+                rankSpan.classList.add('tile-rank');
+
+                const suitSpan = document.createElement('span');
+                suitSpan.textContent = suitName;
+                suitSpan.classList.add('tile-suit-suffix');
+
+                tileDiv.appendChild(rankSpan);
+                tileDiv.appendChild(suitSpan);
+                // tileDisplayValue is handled by spans now
+            }
+            else if (tileCode === 'N') { tileDisplayValue = 'N'; specificClass = 'tile-wind'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'E') { tileDisplayValue = 'E'; specificClass = 'tile-wind'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'S') { tileDisplayValue = 'S'; specificClass = 'tile-wind'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'W') { tileDisplayValue = 'W'; specificClass = 'tile-wind'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'RD') { tileDisplayValue = 'Red'; specificClass = 'tile-dragon-red'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'GD') { tileDisplayValue = 'Green'; specificClass = 'tile-dragon-green'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'WD') { tileDisplayValue = 'Soap'; specificClass = 'tile-dragon-white'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'FL') { tileDisplayValue = '🌺'; specificClass = 'tile-flower'; tileDiv.textContent = tileDisplayValue;}
+            else if (tileCode === 'JK') { tileDisplayValue = 'Joker'; specificClass = 'tile-joker'; tileDiv.textContent = tileDisplayValue;}
+
+            if (specificClass) {
+                tileDiv.classList.add(specificClass);
+            }
+            // tileDiv.textContent = tileDisplayValue; // Moved to within conditions or handled by spans
+            dealtHandContainer.appendChild(tileDiv);
+        });
+    }
+
+    // Function to handle the deal action - simplified for debugging
+    function handleDeal(numTiles) {
+        // Log to both console and debug display
+        const log = (msg) => {
+            console.log(msg);
+            if (window.debugLog) window.debugLog(msg);
+        };
+        
+        log(`=== HANDLE DEAL START (requested ${numTiles} tiles) ===`);
+        log(`Current fullDeck: ${JSON.stringify(fullDeck)}`);
+        log(`Current fullDeck length: ${fullDeck ? fullDeck.length : 'undefined'}`);
+        
+        try {
+            // 1. Check/create deck
+            if (!fullDeck || fullDeck.length === 0) {
+                log('Creating new deck...');
+                fullDeck = createFullDeck();
+                log(`Created deck with ${fullDeck.length} tiles`);
+            }
+            
+            // 2. Check if we have enough tiles
+            log(`Deck has ${fullDeck.length} tiles`);
+            if (fullDeck.length < numTiles) {
+                throw new Error(`Not enough tiles (need ${numTiles}, have ${fullDeck.length})`);
+            }
+            
+            // 3. Deal the tiles
+            log('Dealing tiles...');
+            currentHand = [];
+            for (let i = 0; i < numTiles; i++) {
+                if (fullDeck.length === 0) {
+                    log('WARNING: Deck empty during dealing!');
+                    break;
+                }
+                const tile = fullDeck.pop();
+                log(`  - Dealt tile: ${tile} (${fullDeck.length} remaining)`);
+                currentHand.push(tile);
+            }
+            
+            log(`Dealt ${currentHand.length} tiles: ${currentHand.join(', ')}`);
+            
+            // 4. Display the hand
+            log('Rendering hand...');
+            const container = document.getElementById('dealt-hand-container');
+            log(`Container found: ${!!container}`);
+            
+            if (container) {
+                log('Clearing container...');
+                container.innerHTML = ''; // Clear previous
+                
+                log(`Rendering ${currentHand.length} tiles...`);
+                currentHand.forEach((tile, index) => {
+                    log(`  - Creating tile ${index + 1}/${currentHand.length}: ${tile}`);
+                    const tileEl = document.createElement('div');
+                    tileEl.className = 'tile';
+                    tileEl.textContent = tile || '??';
+                    tileEl.style.border = '2px solid red'; // Make them very visible
+                    container.appendChild(tileEl);
+                    log(`  - Added tile to container`);
+                });
+                log('Tiles rendered in container');
+            } else {
+                log('ERROR: Could not find hand container');
+            }
+            
+            // 5. Update remaining tiles display
+            const remainingEl = document.getElementById('remaining-tiles-p');
+            if (remainingEl) {
+                remainingEl.textContent = `Tiles remaining: ${fullDeck.length}`;
+                log(`Updated remaining tiles display: ${fullDeck.length}`);
+            } else {
+                log('WARNING: Could not find remaining tiles element');
+            }
+            
+            log('=== HANDLE DEAL COMPLETE ===');
+            
+        } catch (error) {
+            const errorMsg = `ERROR: ${error.message}`;
+            console.error(errorMsg, error);
+            if (window.debugLog) window.debugLog(`${errorMsg}\n${error.stack}`);
+            alert(errorMsg);
+        }
+    }
+
+    // Function to handle resetting the deck and game state
+    function handleResetDeck() {
+        fullDeck = createFullDeck(); // Re-initialize the deck
+        currentHand = []; // Clear the current hand array
+        
+        // Clear the display
+        const dealtHandContainer = document.getElementById('dealt-hand-container');
+        if (dealtHandContainer) {
+            dealtHandContainer.innerHTML = ''; // Clear the displayed hand
+        }
+        
+        // Update UI
+        updateRemainingTiles();
+        updateDealButtonStates();
+        
+        // Clear analysis results
+        const resultsContainer = document.getElementById('analysis-results-content');
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '';
+        }
+
+        if (remainingTilesP) { // Update remaining tiles count
+            remainingTilesP.textContent = `Tiles remaining: ${fullDeck.length}`;
+        }
+        console.log('Deck reset. New game ready.');
+        updateDealButtonStates(); // Update button states
+        updateRemainingTiles();
+    }
+
+    // Function to update the enabled/disabled state of deal buttons
+    function updateDealButtonStates() {
+        if (deal13Button) {
+            deal13Button.disabled = fullDeck.length < 13;
+        }
+        if (deal14Button) {
+            deal14Button.disabled = fullDeck.length < 14;
+        }
+    }
+
+    // Function to update the remaining tiles display
+    function updateRemainingTiles() {
+        if (remainingTilesP) {
+            remainingTilesP.textContent = `Tiles remaining: ${fullDeck.length}`;
+        }
+        
+        // Update deal buttons based on remaining tiles
+        updateDealButtonStates();
+        
+        // Enable/disable analyze button based on whether we have a hand
+        const analyzeBtn = document.getElementById('analyze-hand-btn');
+        if (analyzeBtn) {
+            analyzeBtn.disabled = currentHand.length === 0;
+        }
+    }
+
+    // Helper function to get sort keys for Sort Type 1 (Suit then Rank)
+    function getSortKeysType1(tileCode) {
+        let primaryGroup = 99; // Default for Jokers/unspecified
+        let rankInGroup = 99;
+        const suitChar = tileCode.length === 2 ? tileCode[1] : '';
+        const rankChar = tileCode.length === 2 ? tileCode[0] : '';
+
+        if (suitChar === 'C' && !isNaN(rankChar)) { primaryGroup = 1; rankInGroup = parseInt(rankChar); } // Cracks 1-9
+        else if (tileCode === 'RD') { primaryGroup = 2; rankInGroup = 1; } // Red Dragon
+        else if (suitChar === 'B' && !isNaN(rankChar)) { primaryGroup = 3; rankInGroup = parseInt(rankChar); } // Bams 1-9
+        else if (tileCode === 'GD') { primaryGroup = 4; rankInGroup = 1; } // Green Dragon
+        else if (suitChar === 'D' && !isNaN(rankChar)) { primaryGroup = 5; rankInGroup = parseInt(rankChar); } // Dots 1-9
+        else if (tileCode === 'WD') { primaryGroup = 6; rankInGroup = 1; } // White Dragon
+        else if (['N', 'E', 'S', 'W'].includes(tileCode)) { // Winds
+            primaryGroup = 7;
+            if (tileCode === 'E') rankInGroup = 1;
+            else if (tileCode === 'N') rankInGroup = 2;
+            else if (tileCode === 'S') rankInGroup = 3;
+            else if (tileCode === 'W') rankInGroup = 4;
+        }
+        else if (tileCode === 'FL') { primaryGroup = 8; rankInGroup = 1; } // Flowers
+        else if (tileCode === 'JK') { primaryGroup = 9; rankInGroup = 1; } // Jokers
+
+        return [primaryGroup, rankInGroup];
+    }
+
+    // Helper function to get sort keys for Sort Type 2 (Rank then Suit)
+    function getSortKeysType2(tileCode) {
+        let primaryRank = 99; // Default for Jokers/unspecified
+        let suitInRankGroup = 99;
+        const suitChar = tileCode.length === 2 ? tileCode[1] : '';
+        const rankVal = tileCode.length === 2 && !isNaN(tileCode[0]) ? parseInt(tileCode[0]) : 0;
+
+        if (rankVal >= 1 && rankVal <= 9) { // Numbered tiles 1-9
+            primaryRank = rankVal;
+            if (suitChar === 'C') suitInRankGroup = 1;      // Cracks
+            else if (suitChar === 'B') suitInRankGroup = 2; // Bams
+            else if (suitChar === 'D') suitInRankGroup = 3; // Dots
+        }
+        else if (['RD', 'GD', 'WD'].includes(tileCode)) { // Dragons
+            primaryRank = 10; // After 9s
+            if (tileCode === 'RD') suitInRankGroup = 1;
+            else if (tileCode === 'GD') suitInRankGroup = 2;
+            else if (tileCode === 'WD') suitInRankGroup = 3;
+        }
+        else if (['N', 'E', 'S', 'W'].includes(tileCode)) { // Winds
+            primaryRank = 11; // After Dragons
+            if (tileCode === 'E') suitInRankGroup = 1;
+            else if (tileCode === 'N') suitInRankGroup = 2;
+            else if (tileCode === 'S') suitInRankGroup = 3;
+            else if (tileCode === 'W') suitInRankGroup = 4;
+        }
+        else if (tileCode === 'FL') { primaryRank = 12; suitInRankGroup = 1; } // Flowers
+        else if (tileCode === 'JK') { primaryRank = 13; suitInRankGroup = 1; } // Jokers
+
+        return [primaryRank, suitInRankGroup];
+    }
+
+    // Function to sort the current hand and redraw
+    function sortHandAndRedraw(sortType) {
+        if (currentHand.length === 0) return; // No hand to sort
+
+        currentHand.sort((a, b) => {
+            const keysA = sortType === 1 ? getSortKeysType1(a) : getSortKeysType2(a);
+            const keysB = sortType === 1 ? getSortKeysType1(b) : getSortKeysType2(b);
+
+            if (keysA[0] !== keysB[0]) {
+                return keysA[0] - keysB[0]; // Compare primary group/rank
+            }
+            return keysA[1] - keysB[1]; // Compare secondary rank/suit
+        });
+
+        displayHand(currentHand);
+    }
+
+    // Hand template definitions with variations
+    const handTemplates = [
+        {
+            id: 'sequence_and_kongs',
+            name: 'Sequence of 5 and Opposite Kongs',
+            description: 'Pair + sequence of 5 + kongs in other suits',
+            score: 25,
+            requiredTiles: 14,
+            // Each variation is an array of tile patterns that would satisfy this template
+            // The patterns can include specific tiles or wildcards
+            variations: [
+                // Example variation: 1C 1C 2C 3C 4C 5C 6C 3B 3B 3B 3B 7D 7D 7D 7D
+                ['1C', '1C', '2C', '3C', '4C', '5C', '6C', '3B', '3B', '3B', '3B', '7D', '7D', '7D', '7D'],
+                // Add more variations as needed
+            ],
+            // Match function that checks how many tiles from the hand match any position in any variation
+            match: function(hand) {
+                // If no variations defined, use a simple pair as fallback
+                if (!this.variations || this.variations.length === 0) {
+                    return this.matchSimplePattern(hand);
+                }
+                
+                let bestMatch = {
+                    count: 0,
+                    matchedTiles: [],
+                    matchDetails: 'No matches found',
+                    variation: null
+                };
+                
+                // Check each variation
+                this.variations.forEach((variation, index) => {
+                    const handCopy = [...hand];
+                    const matchedTiles = [];
+                    
+                    // For each tile in the variation, try to find a matching tile in the hand
+                    variation.forEach(tilePattern => {
+                        // Find the first matching tile in hand that hasn't been matched yet
+                        const matchIndex = handCopy.findIndex(tile => this.tilesMatch(tile, tilePattern));
+                        if (matchIndex !== -1) {
+                            matchedTiles.push(handCopy[matchIndex]);
+                            handCopy.splice(matchIndex, 1); // Remove matched tile from hand copy
+                        }
+                    });
+                    
+                    // Update best match if this variation has more matches
+                    if (matchedTiles.length > bestMatch.count) {
+                        bestMatch = {
+                            count: matchedTiles.length,
+                            matchedTiles,
+                            matchDetails: `Matched ${matchedTiles.length} tiles in variation ${index + 1}`,
+                            variation: index + 1
+                        };
+                    }
+                });
+                
+                return {
+                    matched: bestMatch.count >= this.requiredTiles,
+                    matchPercentage: Math.round((bestMatch.count / this.requiredTiles) * 100),
+                    ...bestMatch
+                };
+            },
+            // Helper to check if a hand tile matches a pattern tile
+            tilesMatch: function(handTile, patternTile) {
+                // For now, do exact matching
+                // Later we can enhance this to handle wildcards, jokers, etc.
+                return handTile === patternTile;
+            },
+            // Fallback matcher for simple patterns
+            matchSimplePattern: function(hand) {
+                const counts = countTiles(hand);
+                const matchedTiles = [];
+                
+                // Just match any tiles we can
+                hand.forEach(tile => {
+                    if (counts[tile] > 0) {
+                        matchedTiles.push(tile);
+                        counts[tile]--;
+                    }
+                });
+                
+                return {
+                    matched: matchedTiles.length >= this.requiredTiles,
+                    count: matchedTiles.length,
+                    matchedTiles,
+                    matchDetails: `Matched ${matchedTiles.length} individual tiles`,
+                    variation: 0
+                };
+            }
+        },
+        {
+            id: 'symmetrical_13579',
+            name: '13579 Symmetrical',
+            description: 'Pair of 1s and pung of 3s in one suit, kong of 5s in another, pung of 7s and pair of 9s in third suit',
+            score: 25,
+            requiredTiles: 14,
+            variations: [
+                // Example variation:
+                ['1C', '1C', '3C', '3C', '3C', '5B', '5B', '5B', '5B', '7D', '7D', '7D', '9D', '9D']
+                // Add more variations as needed
+            ],
+            match: function(hand) {
+                // Use the same matching logic as the first template
+                return handTemplates[0].match.call(this, hand);
+            },
+            tilesMatch: function(handTile, patternTile) {
+                return handTile === patternTile;
+            },
+            matchSimplePattern: handTemplates[0].matchSimplePattern
+        },
+        {
+            id: 'simple_pair',
+            name: 'Simple Pair',
+            description: 'At least one pair of matching tiles',
+            score: 0,
+            requiredTiles: 2,
+            // No need for variations - we'll handle this specially
+            match: function(hand) {
+                const counts = countTiles(hand);
+                const matchedTiles = [];
+                
+                // Find the most common tile
+                let bestTile = null;
+                let maxCount = 0;
+                
+                for (const [tile, count] of Object.entries(counts)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        bestTile = tile;
+                    }
+                }
+                
+                if (bestTile && maxCount >= 2) {
+                    // Add up to 2 of the best matching tile
+                    const matchCount = Math.min(maxCount, 2);
+                    return {
+                        matched: true,
+                        count: matchCount,
+                        matchedTiles: Array(matchCount).fill(bestTile),
+                        matchDetails: `Found pair of ${bestTile}s`,
+                        variation: 1
+                    };
+                }
+                
+                // No pair found, just return any two matching tiles if possible
+                const singleTiles = [];
+                for (const tile of hand) {
+                    if (singleTiles.length < 2 && !singleTiles.includes(tile)) {
+                        singleTiles.push(tile);
+                    }
+                }
+                
+                return {
+                    matched: singleTiles.length >= 2,
+                    count: singleTiles.length,
+                    matchedTiles: singleTiles,
+                    matchDetails: singleTiles.length > 0 ? `Found ${singleTiles.length} unique tiles` : 'No matches found',
+                    variation: 0
+                };
+            }
+        }
+    ];
+    
+    // Helper function to count occurrences of each tile
+    function countTiles(tiles) {
+        return tiles.reduce((counts, tile) => {
+            counts[tile] = (counts[tile] || 0) + 1;
+            return counts;
+        }, {});
+    }
+    
+    // Helper function to find a group of N matching tiles
+    function findGroup(counts, size) {
+        for (const [tile, count] of Object.entries(counts)) {
+            if (count >= size) {
+                return {
+                    value: tile,
+                    tiles: Array(size).fill(tile)
+                };
+            }
+        }
+        return null;
+    }
+    
+    // Helper function to find a sequence of N tiles in the same suit
+    function findSequence(tiles, length) {
+        // Group tiles by suit and number
+        const bySuit = {};
+        tiles.forEach(tile => {
+            if (tile.length === 2 && !isNaN(tile[0])) { // Only numbered tiles
+                const suit = tile[1];
+                bySuit[suit] = bySuit[suit] || [];
+                bySuit[suit].push(parseInt(tile[0]));
+            }
+        });
+        
+        // Look for a sequence in any suit
+        for (const [suit, numbers] of Object.entries(bySuit)) {
+            const uniqueSorted = [...new Set(numbers)].sort((a, b) => a - b);
+            
+            for (let i = 0; i <= uniqueSorted.length - length; i++) {
+                const start = uniqueSorted[i];
+                const expected = Array.from({length}, (_, j) => start + j);
+                
+                if (expected.every(n => uniqueSorted.includes(n))) {
+                    return expected.map(n => n + suit);
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    // Function to analyze the current hand against templates
+    function analyzeHand() {
+        console.log('Analyze button clicked!');
+        
+        if (currentHand.length === 0) {
+            console.log('No hand to analyze');
+            alert('Please deal a hand first!');
+            return;
+        }
+
+        console.log('Current hand:', currentHand);
+        
+        // Analyze against each template
+        const results = [];
+        
+        handTemplates.forEach(template => {
+            if (template.requiredTiles > currentHand.length) {
+                console.log(`Skipping ${template.id} - not enough tiles`);
+                return;
+            }
+            
+            console.log(`\nAnalyzing with template: ${template.name}`);
+            
+            try {
+                const matchStartTime = performance.now();
+                const result = template.match(currentHand);
+                const matchTime = performance.now() - matchStartTime;
+                
+                console.log(`Match result for ${template.name} (${matchTime.toFixed(2)}ms):`, result);
+                
+                // Calculate match percentage based on number of matched tiles vs template requirement
+                const matchPercentage = Math.round((result.count / template.requiredTiles) * 100);
+                
+                results.push({
+                    ...template,
+                    matchResult: {
+                        ...result,
+                        matchPercentage,
+                        matchLevel: matchPercentage > 80 ? 'high' : 
+                                    matchPercentage > 50 ? 'medium' : 'low',
+                        isComplete: result.matched
+                    },
+                    matchPercentage,
+                    matchLevel: matchPercentage > 80 ? 'high' : 
+                                matchPercentage > 50 ? 'medium' : 'low'
+                });
+                
+            } catch (error) {
+                console.error(`Error analyzing with template ${template.name}:`, error);
+            }
+        });
+        
+        // Sort by match percentage (highest first)
+        results.sort((a, b) => b.matchPercentage - a.matchPercentage);
+        
+        console.log('Analysis complete. Results:', results);
+        
+        // Display results
+        displayAnalysisResults(results, currentHand);
+        
+        // Store results for highlighting
+        window.currentAnalysisResults = results;
+    }
+    
+    // Function to highlight tiles in the hand
+    function highlightTiles(tileIds, highlight = true) {
+        const tiles = document.querySelectorAll('.tile');
+        tiles.forEach(tile => {
+            const tileId = tile.getAttribute('data-tile');
+            if (tileId) {
+                if (tileIds.includes(tileId)) {
+                    tile.classList.toggle('highlighted', highlight);
+                } else if (highlight) {
+                    // Only remove highlight if we're highlighting (not unhighlighting)
+                    tile.classList.remove('highlighted');
+                }
+            }
+        });
+    }
+    
+    // Function to display analysis results
+    function displayAnalysisResults(results, hand) {
+        console.log('Displaying analysis results');
+        const resultsContainer = document.getElementById('analysis-results-content');
+        if (!resultsContainer) {
+            console.error('Results container not found!');
+            return;
+        }
+        
+        resultsContainer.innerHTML = '';
+        
+        if (results.length === 0) {
+            console.log('No results to display');
+            resultsContainer.innerHTML = '<p>No matching patterns found for this hand.</p>';
+            return;
+        }
+        
+        // Show all results but sort by match percentage
+        results.sort((a, b) => b.matchPercentage - a.matchPercentage);
+        
+        results.forEach((result, index) => {
+            const matchEl = document.createElement('div');
+            matchEl.className = 'template-match';
+            const percentageClass = `match-${result.matchLevel}`;
+            const matchStatus = result.matchResult.matched ? '✓ Complete Match' : 
+                              result.matchResult.count > 0 ? 'Partial Match' : 'No Match';
+            
+            // Group matched tiles by type for better display
+            const tileGroups = {};
+            result.matchResult.matchedTiles.forEach(tile => {
+                tileGroups[tile] = (tileGroups[tile] || 0) + 1;
+            });
+            
+            const tileDisplay = Object.entries(tileGroups)
+                .map(([tile, count]) => 
+                    `<span class="matched-tile">${tile}${count > 1 ? `×${count}` : ''}</span>`
+                )
+                .join('');
+            
+            matchEl.innerHTML = `
+                <h4 class="template-header">
+                    ${result.name} 
+                    <span class="match-percentage ${percentageClass}">
+                        ${result.matchPercentage}% ${matchStatus}
+                    </span>
+                </h4>
+                <p class="template-description">${result.description}</p>
+                <div class="match-details">
+                    <p><strong>Matched:</strong> ${result.matchResult.matchDetails || 'No details available'}</p>
+                    ${result.matchResult.variation ? `<p><strong>Variation:</strong> #${result.matchResult.variation}</p>` : ''}
+                    <div class="matched-tiles">
+                        <strong>Matched tiles (${result.matchResult.matchedTiles.length} of ${result.requiredTiles}):</strong> 
+                        <div class="tile-group">
+                            ${tileDisplay || 'None'}
+                        </div>
+                    </div>
+                </div>
+                ${result.score > 0 ? `<div class="score">Potential Score: ${result.score} points</div>` : ''}
+            `;
+            
+            // Add click handler to highlight matching tiles
+            const header = matchEl.querySelector('.template-header');
+            if (header) {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', () => {
+                    // Remove highlight from all tiles first
+                    highlightTiles([], false);
+                    // Highlight tiles for this match
+                    highlightTiles(result.matchResult.matchedTiles, true);
+                    
+                    // Scroll the matched tiles into view
+                    const firstTile = document.querySelector('.tile.highlighted');
+                    if (firstTile) {
+                        firstTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+            }
+            
+            resultsContainer.appendChild(matchEl);
+        });
+    }
+
+        /**
+     * Initializes the game when the DOM is fully loaded
+     */
+    function initializeGame() {
+        logToScreen('🃏 Initializing Mahjongg game...');
+        
+        // Create a new deck
+        fullDeck = createFullDeck();
+        logToScreen(`✅ Created deck with ${fullDeck.length} tiles`);
+        
+        // Get all UI elements
+        const elements = {
+            deal13Btn: document.getElementById('deal-13-btn'),
+            deal14Btn: document.getElementById('deal-14-btn'),
+            resetDeckBtn: document.getElementById('reset-deck-btn'),
+            sortSuitRankBtn: document.getElementById('sort-suit-rank-btn'),
+            sortRankSuitBtn: document.getElementById('sort-rank-suit-btn'),
+            analyzeButton: document.getElementById('analyze-hand-btn'),
+            handContainer: document.getElementById('dealt-hand-container'),
+            resultsContainer: document.getElementById('analysis-results-content')
+        };
+        
+        // Add event listeners
+        function setupEventListeners() {
+            // Deal buttons
+            if (elements.deal13Btn) {
+                elements.deal13Btn.addEventListener('click', () => handleDeal(13));
+            }
+            
+            if (elements.deal14Btn) {
+                elements.deal14Btn.addEventListener('click', () => handleDeal(14));
+            }
+            
+            // Reset button
+            if (elements.resetDeckBtn) {
+                elements.resetDeckBtn.addEventListener('click', handleResetDeck);
+            }
+            
+            // Sort buttons
+            if (elements.sortSuitRankBtn) {
+                elements.sortSuitRankBtn.addEventListener('click', () => sortHandAndRedraw(1));
+            }
+            
+            if (elements.sortRankSuitBtn) {
+                elements.sortRankSuitBtn.addEventListener('click', () => sortHandAndRedraw(2));
+            }
+            
+            // Analyze button
+            if (elements.analyzeButton) {
+                elements.analyzeButton.addEventListener('click', () => {
+                    logToScreen('Analyze button clicked');
+                    analyzeHand();
+                });
+            } else {
+                console.warn('Analyze button not found in the DOM');
+            }
+            
+            // Tile click handler for the hand container
+            if (elements.handContainer) {
+                elements.handContainer.addEventListener('click', (e) => {
+                    const tileElement = e.target.closest('.tile');
+                    if (tileElement) {
+                        tileElement.classList.toggle('selected');
+                    }
+                });
+            }
+        }
+        
+        // Set up the initial UI state
+        function initializeUI() {
+            updateDealButtonStates();
+            updateRemainingTiles();
+            
+            // Clear any previous results
+            if (elements.resultsContainer) {
+                elements.resultsContainer.innerHTML = '<p>Deal a hand to begin analysis.</p>';
+            }
+            
+            // Log success
+            logToScreen('✅ Game initialized successfully');
+        }
+        
+        // Initialize everything
+        setupEventListeners();
+        initializeUI();
+    }
+    
+    // Initialize the game when the DOM is fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeGame);
+    } else {
+        // DOM already loaded, initialize immediately
+        initializeGame();
+    }
+    
+    // Export public API
+    return {
+        // Core game functions
+        analyzeHand,
+        displayAnalysisResults,
+        highlightTiles: highlightTilesInHand,
+        
+        // Deck management
+        createFullDeck: () => {
+            fullDeck = createFullDeck();
+            return fullDeck;
+        },
+        shuffleDeck,
+        shuffleAndDeal,
+        
+        // Hand management
+        displayHand,
+        getCurrentHand: () => [...currentHand],
+        setCurrentHand: (hand) => {
+            if (Array.isArray(hand)) {
+                currentHand = [...hand];
+                displayHand(currentHand);
+                return true;
+            }
+            return false;
+        },
+        
+        // Game actions
+        handleDeal,
+        handleResetDeck,
+        sortHandAndRedraw,
+        
+        // UI updates
+        updateDealButtonStates,
+        updateRemainingTiles,
+        
+        // Utility functions
+        formatTileDisplay,
+        
+        // Initialize the game (for manual initialization if needed)
+        initialize: initializeGame
+    };
+})();
+
+// Log when the script has finished loading
+console.log('Mahjongg dealer script initialization complete');
+    
+    // Get all buttons and UI elements
+    const elements = {
+        deal13Button: document.getElementById('deal-13-btn'),
+        deal14Button: document.getElementById('deal-14-btn'),
+        resetDeckButton: document.getElementById('reset-deck-btn'),
+        sortSuitRankBtn: document.getElementById('sortSuitRankBtn'),
+        sortRankSuitBtn: document.getElementById('sortRankSuitBtn'),
+        analyzeButton: document.getElementById('analyze-hand-btn'),
+        remainingTilesP: document.getElementById('remaining-tiles-p')
+    };
+    
+    // Log which elements were found
+    logToScreen('🔍 Checking UI elements:');
+    for (const [name, element] of Object.entries(elements)) {
+        logToScreen(`   ${name}: ${element ? '✅ Found' : '❌ Missing'}`);
+    }
+    
+    // Make elements and functions available in the global scope for debugging
+    window.debugElements = elements;
+    window.analyzeHand = analyzeHand;
+    window.highlightTiles = highlightTiles;
+
+    // Set initial UI state
+    updateRemainingTiles();
+    updateDealButtonStates();
+    
+    // Add event listeners
+    if (elements.deal13Button) {
+        elements.deal13Button.addEventListener('click', () => handleDeal(13));
+    }
+    
+    if (elements.deal14Button) {
+        elements.deal14Button.addEventListener('click', () => handleDeal(14));
+    }
+    
+    if (elements.resetDeckButton) {
+        elements.resetDeckButton.addEventListener('click', handleResetDeck);
+    }
+    
+    if (elements.sortSuitRankBtn) {
+        elements.sortSuitRankBtn.addEventListener('click', () => sortHandAndRedraw(1));
+    }
+    
+    if (elements.sortRankSuitBtn) {
+        elements.sortRankSuitBtn.addEventListener('click', () => sortHandAndRedraw(2));
+    }
+    
+    if (elements.analyzeButton) {
+        elements.analyzeButton.addEventListener('click', () => {
+            logToScreen('Analyze button clicked');
+            analyzeHand();
+        });
+    } else {
+        console.error('Analyze button not found!');
+    }
+});
