@@ -509,6 +509,16 @@
         }
     </style>
     <style>
+        /* Force white background for dot tiles and white dragon */
+        html body .tile.dot-tile,
+        html body .tile[data-suit="D"],
+        html body .tile[data-suit="WD"] {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            background-image: none !important;
+            color: #000000 !important;
+        }
+        
         /* Button styles */
         button {
             padding: 10px 15px;

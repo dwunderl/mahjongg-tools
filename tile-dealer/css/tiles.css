@@ -127,10 +127,13 @@
     border-color: #000 !important;
 }
 
+/* White Dragon (Soap) - styles are now handled by the combined rule above */
+
+/* Dot-numbered tiles (1D-9D) and White Dragon (Soap) */
+.tile[data-suit="D"],
 .tile[data-suit="WD"] {
-    background-color: #fff !important; /* White background */
-    color: #000 !important; /* Black text */
-    border-color: #000 !important;
+    background-color: #ffffff !important; /* White background */
+    color: #000000 !important; /* Black text */
 }
 
 /* Hand container */

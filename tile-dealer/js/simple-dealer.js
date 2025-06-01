@@ -229,6 +229,11 @@ function displayHand(hand) {
         tileEl.setAttribute('data-suit', suit || tileCode);
         if (value) tileEl.setAttribute('data-value', value);
         
+        // Add specific class for dot tiles and white dragon
+        if (suit === 'D' || tileCode === 'WD') {
+            tileEl.classList.add('dot-tile');
+        }
+        
         // Set tile content with proper display text
         let displayText = tileCode;
         if (suit && value) {
