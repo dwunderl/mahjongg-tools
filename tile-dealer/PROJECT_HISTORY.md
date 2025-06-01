@@ -35,6 +35,30 @@
 
 ## Recent Changes
 
+### 2025-06-01 - Session Summary: Dragon Tile Text Styling
+- **Issue Addressed**:
+  - Dragon tile text was too small and difficult to read
+  - Text was wrapping inappropriately on dragon tiles
+  - Inconsistent styling between different tile types
+
+- **Changes Made**:
+  - Increased dragon tile text size to 12px for better readability
+  - Implemented CSS to prevent text wrapping on dragon tiles
+  - Added proper text centering and padding
+  - Ensured consistent styling across all dragon tiles (Red, Green, Soap)
+  - Documented all changes in PROJECT_HISTORY.md
+
+- **Technical Notes**:
+  - Used CSS `white-space: nowrap` to prevent wrapping
+  - Added `text-overflow: ellipsis` for better overflow handling
+  - Used `!important` flags to ensure styles take precedence
+  - Committed changes to `feature/increase-tile-text-size` branch
+
+- **Next Steps**:
+  - Review changes in the feature branch
+  - Create pull request to merge into main branch
+  - Consider similar text size adjustments for other tile types if needed
+
 ### 2025-06-01 - CSS Debugging and Text Size Fix
 - **Issue**: CSS changes weren't being applied due to:
   - Multiple style sheets with conflicting rules
