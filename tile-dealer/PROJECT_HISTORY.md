@@ -35,6 +35,27 @@
 
 ## Recent Changes
 
+### 2025-06-01 - CSS Debugging and Text Size Fix
+- **Issue**: CSS changes weren't being applied due to:
+  - Multiple style sheets with conflicting rules
+  - CSS specificity issues with dynamically generated content
+  - Browser caching of styles
+- **Solution**:
+  - Added styles at the end of the document with `!important` to ensure they take precedence
+  - Used more specific selectors to target the corner text
+  - Documented the need for `!important` when overriding styles in this project
+- **Changes**:
+  - Increased corner text size to 9px for better readability
+  - Ensured consistent text positioning with `line-height` and `position`
+  - Removed debug styles after testing
+
+### 2025-06-01
+- Created new branch `feature/increase-tile-text-size` for tile text size improvements
+- Verified current application state:
+  - Tiles display correctly
+  - All buttons functional (Deal 13/14, Reset Deck)
+  - No console errors present
+
 ### 2023-05-31
 - Fixed tile styling for dot tiles and white dragon
 - Implemented proper tile display with rank and suit

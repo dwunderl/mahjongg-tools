@@ -92,18 +92,20 @@
 }
 
 /* Tile suit indicator (small text in corner) */
-.tile::before {
+/* More specific selector for tile corner text */
+#dealt-hand-container .tile::before {
     content: attr(data-corner);
     position: absolute;
     top: 2px;
     left: 3px;
-    font-size: 6px !important;
+    font-size: 12px !important;  /* Increased further to 12px */
     font-weight: normal !important;
     opacity: 0.8;
     line-height: 1 !important;
     font-family: Arial, sans-serif !important;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    z-index: 10;  /* Ensure it stays on top */
 }
 
 /* Color coding for suits */

@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mahjongg Tile Dealer (American)</title>
+    <style>
+        /* DEBUG - Very obvious change */
+        #dealt-hand-container .tile::before {
+            font-size: 16px !important;
+            background-color: yellow !important;
+            border: 2px solid red !important;
+            font-weight: bold !important;
+            color: #000 !important;
+            text-shadow: 0 0 1px white;
+            padding: 1px 2px;
+            margin: 0;
+            line-height: 1;
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            white-space: nowrap;
+            overflow: visible;
+        }
+    </style>
     <link rel="stylesheet" href="css/mahjongg-styles.css">
     <style>
         /* Tile styles */
@@ -181,8 +200,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Mahjongg Tile Dealer</title>
+    <link rel="stylesheet" href="css/mahjongg-styles.css?v=20240601">
     <link rel="stylesheet" href="../css/mobile.css">
-    <link rel="stylesheet" href="css/mahjongg-styles.css">
     <link rel="stylesheet" href="css/tiles.css">
     <style>
         /* Ensure the hand container is visible */
@@ -733,5 +752,78 @@
             line-height: 1.4;
         }
     </style>
+    <!-- Tile text size adjustments -->
+    <style>
+        /* Corner text */
+        .tile::before {
+            font-size: 9px !important;
+            line-height: 1 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            top: 1px !important;
+            left: 2px !important;
+        }
+        
+        /* Target the tile content div inside dragon tiles */
+        .tile[data-corner="Dragon"] .tile-content {
+            font-size: 12px !important;
+            font-weight: bold !important;
+            color: black !important;
+            /* Center the text and prevent wrapping */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            text-align: center;
+            padding: 0 2px !important;  /* Reduced horizontal padding */
+            box-sizing: border-box;
+            line-height: 1;
+            white-space: nowrap;  /* Prevent text wrapping */
+            overflow: hidden;     /* Hide any overflow */
+            text-overflow: ellipsis; /* Show ellipsis if text is too long */
+        }
+    </style>
+    <script>
+        // This will run after the page loads
+        window.addEventListener('load', function() {
+            console.log('=== TILE DEBUGGING ===');
+            
+            // Find ALL tiles
+            const allTiles = document.querySelectorAll('.tile');
+            console.log('Total tiles found:', allTiles.length);
+            
+            // Log details about each tile
+            allTiles.forEach((tile, index) => {
+                console.log(`\n--- Tile ${index + 1} ---`);
+                console.log('Classes:', tile.className);
+                console.log('Dataset:', tile.dataset);
+                console.log('Text content:', tile.textContent.trim());
+                
+                // If this is a dragon tile, make it very obvious
+                if (tile.textContent.includes('Red') || 
+                    tile.textContent.includes('Green') || 
+                    tile.textContent.includes('Soap')) {
+                    console.log('THIS IS A DRAGON TILE');
+                    // Try multiple ways to make this visible
+                    tile.style.setProperty('font-size', '40px', 'important');
+                    tile.style.setProperty('color', 'red', 'important');
+                    tile.style.setProperty('background', 'yellow', 'important');
+                    tile.style.setProperty('z-index', '9999', 'important');
+                    
+                    // Also try to find any child elements
+                    if (tile.children.length > 0) {
+                        console.log('Has child elements:', tile.children);
+                        Array.from(tile.children).forEach(child => {
+                            child.style.setProperty('font-size', '40px', 'important');
+                            child.style.setProperty('color', 'red', 'important');
+                        });
+                    }
+                }
+            });
+            
+            console.log('=== END TILE DEBUGGING ===');
+        });
+    </script>
 </body>
 </html>
