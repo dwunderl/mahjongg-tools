@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mahjong Hand Analyzer (Simple)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2em auto; }
+        button { margin: 0.5em 0.5em 0.5em 0; padding: 0.5em 1.2em; font-size: 1em; }
+        #handDisplay { font-size: 1.1em; margin: 1em 0; background: #f8f8f8; padding: 0.5em; border-radius: 4px; }
+        pre { background: #f3f3f3; padding: 1em; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<h2>Mahjong Hand Analyzer (Simple)</h2>
+<button id="generateBtn">Generate Random Hand</button>
+<button id="analyzeBtn">Analyze Hand</button>
+<div id="handDisplay">(No hand yet)</div>
+<pre id="resultDisplay">(No analysis yet)</pre>
+<script>
+// --- Tile Set (simplified, update as needed) ---
+const TILES = [
+    ...Array.from({length: 9}, (_,i) => `${i+1}bam`),
+    ...Array.from({length: 9}, (_,i) => `${i+1}crack`),
+    ...Array.from({length: 9}, (_,i) => `${i+1}dot`),
+    'rd','gd','wd', // Dragons
+    'e','s','w','n', // Winds
+    'f1','f2','f3','f4' // Flowers
+];
+
+// --- Random Hand Generator ---
+function generateRandomHand(size=14) {
+    const pool = [...TILES, ...TILES, ...TILES, ...TILES]; // 4 of each tile
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, size);
+}
+
+// --- Hand Analysis Logic (real) ---
+
+// Helper: Base class for hand templates
+class HandTemplate {
+    constructor(config) {
+        this.templateId = config.templateId;
+        this.name = config.name;
+        this.description = config.description;
+        this.category = config.category;
+        this.pointValue = config.pointValue || 1;
+        this.number = config.number || null;
+    }
+    generateVariations() {
+        throw new Error('Subclasses must implement generateVariations');
+    }
+    validateHand(tiles) {
+        throw new Error('Subclasses must implement validateHand');
+    }
+}
+
+// --- Template 1: SequenceAndKongsTemplate ---
+class SequenceAndKongsTemplate extends HandTemplate {
+    constructor() {
+        super({
+            templateId: 'sequence_and_kongs',
+            name: 'Sequence and Kongs',
+            description: 'Pair of the starting number, sequence of 5 in one suit (starting with the pair), and kongs of the starting number in the other two suits',
+            category: 'Sequences',
+            pointValue: 30,
+            number: 1
+        });
+    }
+    generateVariations() {
+        const variations = [];
+        const SUITS = ['bam', 'crack', 'dot'];
+        for (const seqSuit of SUITS) {
+            for (let startNum = 1; startNum <= 5; startNum++) {
+                const variation = [];
+                let groupIndex = 0;
+                // Pair of the starting number in the sequence suit
+                for (let i = 0; i < 2; i++) {
+                    const tileCode = `${startNum}${seqSuit}`;
+                    variation.push({
+                        type: 'pair', tile: tileCode, value: tileCode, groupIndex, position: i
+                    });
+                }
+                groupIndex++;
+                // Sequence of 4 more tiles (to make a 5-tile sequence with the pair)
+                for (let i = 1; i < 5; i++) {
+                    const tileCode = `${startNum + i}${seqSuit}`;
+                    variation.push({
+                        type: 'sequence', tile: tileCode, value: tileCode, groupIndex, position: i
+                    });
+                }
+                groupIndex++;
+                // Two kongs of the starting number in the other two suits
+                let kongsAdded = 0;
+                for (const kongSuit of SUITS) {
+                    if (kongSuit !== seqSuit && kongsAdded < 2) {
+                        for (let i = 0; i < 4; i++) {
+                            const tileCode = `${startNum}${kongSuit}`;
+                            variation.push({
+                                type: 'kong', tile: tileCode, value: tileCode, groupIndex, position: i
+                            });
+                        }
+                        groupIndex++;
+                        kongsAdded++;
+                    }
+                }
+                variations.push({
+                    name: `Pair ${startNum}${seqSuit}, sequence ${startNum}-${startNum+4}${seqSuit}, kongs of ${startNum} in other suits`,
+                    slots: variation
+                });
+            }
+        }
+        return variations;
+    }
+    validateHand(tiles) { return { matched: false, score: 0, matchedTiles: [] }; }
+}
+
+// --- Template 2: Symmetrical13579AllSuitsTemplate ---
+class Symmetrical13579AllSuitsTemplate extends HandTemplate {
+    constructor() {
+        super({
+            templateId: 'symmetrical_13579_all_suits',
+            name: '13579 Symmetrical - All 3 suits',
+            description: 'Pair of 1s (suit1), Pung of 3s (suit1), Kong of 5s (suit2), Pung of 7s (suit3), Pair of 9s (suit3).',
+            category: '13579',
+            pointValue: 25,
+            number: 2
+        });
+    }
+
+    _createTileGroup(tileCode, count, type, groupIndex) {
+        const group = [];
+        for (let i = 0; i < count; i++) {
+            group.push({
+                type: type,
+                tile: tileCode,
+                value: tileCode, 
+                groupIndex: groupIndex,
+                position: i
+            });
+        }
+        return group;
+    }
+
+    generateVariations() {
+        const variations = [];
+        const SUITS = ['bam', 'crack', 'dot'];
+
+        for (const suit1 of SUITS) {
+            for (const suit2 of SUITS) {
+                if (suit1 === suit2) continue;
+                for (const suit3 of SUITS) {
+                    if (suit3 === suit1 || suit3 === suit2) continue;
+
+                    const variation = [];
+                    let groupIndex = 0;
+
+                    // Pair - 1, suit1
+                    variation.push(...this._createTileGroup(`1${suit1}`, 2, 'pair', groupIndex++));
+                    // Pung - 3, suit1
+                    variation.push(...this._createTileGroup(`3${suit1}`, 3, 'pung', groupIndex++));
+                    // Kong - 5, suit2
+                    variation.push(...this._createTileGroup(`5${suit2}`, 4, 'kong', groupIndex++));
+                    // Pung - 7, suit3
+                    variation.push(...this._createTileGroup(`7${suit3}`, 3, 'pung', groupIndex++));
+                    // Pair - 9, suit3
+                    variation.push(...this._createTileGroup(`9${suit3}`, 2, 'pair', groupIndex++));
+                    
+                    variations.push({
+                        name: `13579 Sym: S1=${suit1}, S2=${suit2}, S3=${suit3}`,
+                        slots: variation,
+                        description: `1s(${suit1}), 3s(${suit1}), 5s(${suit2}), 7s(${suit3}), 9s(${suit3})`
+                    });
+                }
+            }
+        }
+        return variations;
+    }
+    validateHand(tiles) { return { matched: false, score: 0, matchedTiles: [] }; }
+}
+
+// --- Template 3: KongKongPairWithFlowersAndDragonsTemplate ---
+class KongKongPairWithFlowersAndDragonsTemplate extends HandTemplate {
+    constructor() {
+        super({
+            templateId: 'kong_kong_pair_flowers_dragons',
+            name: 'Kong Kong Pair with Flowers and Dragons',
+            description: 'Pair of Flowers, two kongs of the same number in different suits with single dragons, and a pair of the same number in a third suit',
+            category: 'Special',
+            pointValue: 25,
+            number: 1
+        });
+    }
+    generateVariations() {
+        const variations = [];
+        const SUITS = ['bam', 'crack', 'dot'];
+        for (let number = 1; number <= 9; number++) {
+            for (let i = 0; i < SUITS.length; i++) {
+                for (let j = 0; j < SUITS.length; j++) {
+                    if (i === j) continue;
+                    const variation = [];
+                    let groupIndex = 0;
+                    // Pair of flowers
+                    variation.push(...this._createTileGroup('f1', 1, 'pair', groupIndex++, true));
+                    variation.push(...this._createTileGroup('f2', 1, 'pair', groupIndex-1, true));
+                    // Kongs
+                    variation.push(...this._createTileGroup(`${number}${SUITS[i]}`, 4, 'kong', groupIndex++));
+                    variation.push(...this._createTileGroup(`${number}${SUITS[j]}`, 4, 'kong', groupIndex++));
+                    // Pair in remaining suit
+                    const remainingSuit = SUITS.find((_, idx) => idx !== i && idx !== j);
+                    variation.push(...this._createTileGroup(`${number}${remainingSuit}`, 2, 'pair', groupIndex++));
+                    // Single dragons
+                    variation.push(...this._createTileGroup('rd', 1, 'single', groupIndex++));
+                    variation.push(...this._createTileGroup('gd', 1, 'single', groupIndex++));
+                    if (variation.length === 14) {
+                        variations.push({
+                            name: `Kong Kong Pair with ${number}s and Dragons`,
+                            slots: variation,
+                            description: `Pair of flowers, kongs of ${number}${SUITS[i]} and ${number}${SUITS[j]}, pair of ${number}${remainingSuit}, and single dragons`
+                        });
+                    }
+                }
+            }
+        }
+        return variations;
+    }
+    _createTileGroup(tileCode, count, type, groupIndex, isFlower = false) {
+        const group = [];
+        for (let i = 0; i < count; i++) {
+            group.push({
+                type, value: tileCode, tile: tileCode, groupIndex, position: i, isFlower
+            });
+        }
+        return group;
+    }
+    validateHand(tiles) { return { matched: false, score: 0, matchedTiles: [] }; }
+}
+
+// --- Template 4: EvenChowEvenPungsFlowersTemplate ---
+class EvenChowEvenPungsFlowersTemplate extends HandTemplate {
+    constructor() {
+        super({
+            templateId: 'even_chow_even_pungs_flowers',
+            name: 'Even Chow + Even Pungs + Flowers',
+            description: 'Kong of Flowers, singles of 2,4,6,8 in one suit, and pungs of the same even number in the other two suits',
+            category: 'Even Numbers',
+            pointValue: 35,
+            number: 4
+        });
+    }
+    generateVariations() {
+        const variations = [];
+        const evenNumbers = [2, 4, 6, 8];
+        const SUITS = ['bam', 'crack', 'dot'];
+        for (const evenNum of evenNumbers) {
+            for (const chowSuit of SUITS) {
+                for (const pungSuit1 of SUITS) {
+                    if (pungSuit1 === chowSuit) continue;
+                    for (const pungSuit2 of SUITS) {
+                        if (pungSuit2 === chowSuit || pungSuit2 === pungSuit1) continue;
+                        const variation = [];
+                        let groupIndex = 0;
+                        variation.push(...this._createTileGroup('f1', 4, 'kong', groupIndex++));
+                        for (const num of evenNumbers) {
+                            variation.push(...this._createTileGroup(`${num}${chowSuit}`, 1, 'single', groupIndex++, 1));
+                        }
+                        variation.push(...this._createTileGroup(`${evenNum}${pungSuit1}`, 3, 'pung', groupIndex++));
+                        variation.push(...this._createTileGroup(`${evenNum}${pungSuit2}`, 3, 'pung', groupIndex++));
+                        if (variation.length === 14) {
+                            variations.push({
+                                name: `Even ${evenNum} - ${chowSuit} chow, ${pungSuit1}/${pungSuit2} pungs`,
+                                slots: variation,
+                                description: `Kong of Flowers, singles of 2,4,6,8 in ${chowSuit}, pungs of ${evenNum} in ${pungSuit1} and ${pungSuit2}`
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        return variations;
+    }
+    _createTileGroup(tileCode, count, type, groupIndex, position = 0) {
+        const group = [];
+        for (let i = 0; i < count; i++) {
+            group.push({
+                type, tile: tileCode, value: tileCode, groupIndex, position: position === 0 ? i : position
+            });
+        }
+        return group;
+    }
+    validateHand(tiles) { return { matched: false, score: 0, matchedTiles: [] }; }
+}
+
+// --- TileMatcher ---
+class TileMatcher {
+    constructor() { this.reset(); }
+    reset() {
+        this.hand = [];
+        this.variation = [];
+        this.availableJokers = 0;
+        this.usedJokers = 0;
+        this.matchedTiles = [];
+        this.variationCopy = [];
+    }
+    matchVariation(hand, variation, availableJokers = 0) {
+        this.reset();
+        this.hand = [...hand];
+        this.variation = variation.slots || variation;
+        this.availableJokers = availableJokers;
+        this.variationCopy = JSON.parse(JSON.stringify(this.variation));
+        // First pass: try to match exact tiles
+        this.matchExactTiles();
+        // Second pass: use jokers to fill remaining slots in valid groups
+        this.matchWithJokers();
+        const score = this.calculateScore();
+        const maxPossibleScore = this.variation.length;
+        return {
+            score,
+            maxPossibleScore,
+            matchedTiles: [...this.matchedTiles],
+            usedJokers: this.usedJokers,
+            variation: this.variationCopy
+        };
+    }
+    matchExactTiles() {
+        const handCopy = [...this.hand];
+        for (let i = 0; i < handCopy.length; i++) {
+            const tile = handCopy[i];
+            if (tile === undefined || tile === null) continue;
+            let matched = false;
+            for (let j = 0; j < this.variation.length; j++) {
+                const slot = this.variation[j];
+                if (slot.matched) continue;
+                if (!slot || slot.tile === undefined) continue;
+                if (this.tilesMatch(tile, slot.tile)) {
+                    slot.matched = true;
+                    slot.usedJoker = false;
+                    this.matchedTiles.push(tile);
+                    handCopy.splice(i, 1);
+                    i--;
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        this.hand = handCopy;
+    }
+    matchWithJokers() {
+        // Only use jokers if we have some available
+        if (this.availableJokers <= 0) return;
+        // Find all unmatched slots that are part of a valid group
+        // (For simplicity, just fill unmatched slots with jokers)
+        for (let j = 0; j < this.variation.length && this.availableJokers > 0; j++) {
+            const slot = this.variation[j];
+            if (!slot.matched) {
+                slot.matched = true;
+                slot.usedJoker = true;
+                this.matchedTiles.push('joker');
+                this.usedJokers++;
+                this.availableJokers--;
+            }
+        }
+    }
+    calculateScore() {
+        // Score: number of matched slots (excluding jokers)
+        return this.matchedTiles.filter(t => t !== 'joker').length;
+    }
+    tilesMatch(tileA, tileB) {
+        // Case-insensitive match
+        return (tileA || '').toLowerCase() === (tileB || '').toLowerCase();
+    }
+}
+
+// --- HandAnalyzer ---
+class HandAnalyzer {
+    constructor() {
+        this.templates = [];
+        this.tileMatcher = new TileMatcher();
+        this.initializeTemplates();
+    }
+    initializeTemplates() {
+        this.templates.push(new SequenceAndKongsTemplate());
+        this.templates.push(new Symmetrical13579AllSuitsTemplate());
+        this.templates.push(new KongKongPairWithFlowersAndDragonsTemplate());
+        this.templates.push(new EvenChowEvenPungsFlowersTemplate());
+    }
+    analyzeHand(hand) {
+        if (!hand || hand.length === 0) {
+            return [];
+        }
+        const nonJokerTiles = hand.filter(tile => !tile.startsWith('j'));
+        const jokers = hand.length - nonJokerTiles.length;
+        const results = [];
+        this.templates.forEach(template => {
+            const result = this.analyzeTemplate(template, nonJokerTiles, jokers);
+            if (result) {
+                results.push({
+                    templateId: template.templateId,
+                    templateName: template.name,
+                    category: template.category,
+                    pointValue: template.pointValue,
+                    ...result
+                });
+            }
+        });
+        results.sort((a, b) => b.score - a.score);
+        return results;
+    }
+    analyzeTemplate(template, nonJokerTiles, availableJokers) {
+        let bestMatch = null;
+        const variations = template.generateVariations();
+        for (const variation of variations) {
+            const match = this.tileMatcher.matchVariation(nonJokerTiles, variation, availableJokers);
+            if (!bestMatch || match.score > bestMatch.score) {
+                bestMatch = match;
+            }
+            if (bestMatch.score === bestMatch.maxPossibleScore) {
+                break;
+            }
+        }
+        return bestMatch;
+    }
+}
+const handAnalyzer = new HandAnalyzer();
+
+// --- UI Logic ---
+let currentHand = [];
+const handDisplay = document.getElementById('handDisplay');
+const resultDisplay = document.getElementById('resultDisplay');
+
+document.getElementById('generateBtn').onclick = function() {
+    currentHand = generateRandomHand();
+    handDisplay.textContent = currentHand.join(', ');
+    resultDisplay.textContent = '(No analysis yet)';
+};
+document.getElementById('analyzeBtn').onclick = function() {
+    if (!currentHand.length) {
+        resultDisplay.textContent = 'No hand to analyze!';
+        return;
+    }
+    const result = handAnalyzer.analyzeHand(currentHand);
+    resultDisplay.textContent = JSON.stringify(result, null, 2);
+};
+</script>
+</body>
+</html>
