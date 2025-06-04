@@ -23,6 +23,18 @@
         .summary-row:last-child {
             border-bottom: none;
         }
+        .summary-row .variation-display {
+            font-style: italic;
+            font-size: 0.9em;
+            color: #555;
+            margin-left: 10px;
+        }
+        .tile-highlighted {
+            border: 3px solid gold !important; /* !important to ensure override */
+            box-shadow: 0 0 10px gold;
+            transform: scale(1.05); /* Slightly enlarge highlighted tiles */
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
         .tile {
             width: 45px; /* Adjusted for better fit */
             height: 65px; /* Adjusted for better fit */
@@ -249,31 +261,51 @@ class KongKongPairWithFlowersAndDragonsTemplate extends HandTemplate {
     }
     generateVariations() {
         const variations = [];
-        const SUITS = ['bam', 'crack', 'dot'];
-        for (let number = 1; number <= 9; number++) {
-            for (let i = 0; i < SUITS.length; i++) {
-                for (let j = 0; j < SUITS.length; j++) {
-                    if (i === j) continue;
-                    const variation = [];
-                    let groupIndex = 0;
-                    // Pair of flowers
-                    variation.push(...this._createTileGroup('F', 2, 'pair', groupIndex++, true)); // Pair of generic Flowers
-                    // Kongs
-                    variation.push(...this._createTileGroup(`${number}${SUITS[i]}`, 4, 'kong', groupIndex++));
-                    variation.push(...this._createTileGroup(`${number}${SUITS[j]}`, 4, 'kong', groupIndex++));
-                    // Pair in remaining suit
-                    const remainingSuit = SUITS.find((_, idx) => idx !== i && idx !== j);
-                    variation.push(...this._createTileGroup(`${number}${remainingSuit}`, 2, 'pair', groupIndex++));
-                    // Single dragons
-                    variation.push(...this._createTileGroup('rd', 1, 'single', groupIndex++));
-                    variation.push(...this._createTileGroup('gd', 1, 'single', groupIndex++));
-                    if (variation.length === 14) {
-                        variations.push({
-                            name: `Kong Kong Pair with ${number}s and Dragons`,
-                            slots: variation,
-                            description: `Pair of flowers, kongs of ${number}${SUITS[i]} and ${number}${SUITS[j]}, pair of ${number}${remainingSuit}, and single dragons`
-                        });
-                    }
+        const ALL_SUITS_ORDERED = ['bam', 'crack', 'dot']; // Fixed order for consistent permutation
+        const SUIT_TO_DRAGON_MAP = {
+            'bam': 'gd',  // Bam Kong -> Green Dragon
+            'crack': 'rd', // Crack Kong -> Red Dragon
+            'dot': 'wd'   // Dot Kong -> White Dragon
+        };
+
+        for (let number = 1; number <= 9; number++) { // 9 choices for the number component
+            // New suit iteration logic to achieve 3 permutations for (kongSuit1, kongSuit2, pairSuit)
+            for (let pairSuitIndex = 0; pairSuitIndex < ALL_SUITS_ORDERED.length; pairSuitIndex++) {
+                const pairSuit = ALL_SUITS_ORDERED[pairSuitIndex];
+                const otherSuitsForKongs = ALL_SUITS_ORDERED.filter(s => s !== pairSuit);
+                const kongSuit1 = otherSuitsForKongs[0]; // First of the remaining suits for the first kong
+                const kongSuit2 = otherSuitsForKongs[1]; // Second of the remaining suits for the second kong
+
+                const dragonForKong1 = SUIT_TO_DRAGON_MAP[kongSuit1];
+                const dragonForKong2 = SUIT_TO_DRAGON_MAP[kongSuit2];
+
+                const currentVariationSlots = [];
+                let groupIndex = 0;
+
+                // Pair of generic Flowers (2 tiles)
+                currentVariationSlots.push(...this._createTileGroup('F', 2, 'pair', groupIndex++, true));
+                
+                // Kong of 'number' in kongSuit1 (4 tiles)
+                currentVariationSlots.push(...this._createTileGroup(`${number}${kongSuit1}`, 4, 'kong', groupIndex++));
+                
+                // Kong of 'number' in kongSuit2 (4 tiles)
+                currentVariationSlots.push(...this._createTileGroup(`${number}${kongSuit2}`, 4, 'kong', groupIndex++));
+                
+                // Pair of 'number' in pairSuit (2 tiles)
+                currentVariationSlots.push(...this._createTileGroup(`${number}${pairSuit}`, 2, 'pair', groupIndex++));
+
+                // Single Dragon corresponding to kongSuit1 (1 tile)
+                currentVariationSlots.push(...this._createTileGroup(dragonForKong1, 1, 'single', groupIndex++));
+                // Single Dragon corresponding to kongSuit2 (1 tile)
+                currentVariationSlots.push(...this._createTileGroup(dragonForKong2, 1, 'single', groupIndex++));
+                
+                // Total tiles: 2 (F) + 4 (K1) + 4 (K2) + 2 (P) + 1 (D1) + 1 (D2) = 14 tiles
+                if (currentVariationSlots.length === 14) {
+                    variations.push({
+                        name: `Kongs of ${number} (${kongSuit1[0].toUpperCase()}/${kongSuit2[0].toUpperCase()}), Pair ${number} (${pairSuit[0].toUpperCase()}), Flowers, Dragons (${dragonForKong1}/${dragonForKong2})`,
+                        slots: currentVariationSlots,
+                        description: `Pair of flowers, kongs of ${number}${kongSuit1} and ${number}${kongSuit2}, pair of ${number}${pairSuit}, and single ${dragonForKong1} & ${dragonForKong2} dragons.`
+                    });
                 }
             }
         }
@@ -306,29 +338,39 @@ class EvenChowEvenPungsFlowersTemplate extends HandTemplate {
     generateVariations() {
         const variations = [];
         const evenNumbers = [2, 4, 6, 8];
-        const SUITS = ['bam', 'crack', 'dot'];
-        for (const evenNum of evenNumbers) {
-            for (const chowSuit of SUITS) {
-                for (const pungSuit1 of SUITS) {
-                    if (pungSuit1 === chowSuit) continue;
-                    for (const pungSuit2 of SUITS) {
-                        if (pungSuit2 === chowSuit || pungSuit2 === pungSuit1) continue;
-                        const variation = [];
-                        let groupIndex = 0;
-                        variation.push(...this._createTileGroup('F', 4, 'kong', groupIndex++)); // Kong of generic Flowers
-                        for (const num of evenNumbers) {
-                            variation.push(...this._createTileGroup(`${num}${chowSuit}`, 1, 'single', groupIndex++, 1));
-                        }
-                        variation.push(...this._createTileGroup(`${evenNum}${pungSuit1}`, 3, 'pung', groupIndex++));
-                        variation.push(...this._createTileGroup(`${evenNum}${pungSuit2}`, 3, 'pung', groupIndex++));
-                        if (variation.length === 14) {
-                            variations.push({
-                                name: `Even ${evenNum} - ${chowSuit} chow, ${pungSuit1}/${pungSuit2} pungs`,
-                                slots: variation,
-                                description: `Kong of Flowers, singles of 2,4,6,8 in ${chowSuit}, pungs of ${evenNum} in ${pungSuit1} and ${pungSuit2}`
-                            });
-                        }
-                    }
+        const ALL_SUITS_ORDERED = ['bam', 'crack', 'dot']; // Use a fixed order for consistent permutation
+
+        for (const evenNum of evenNumbers) { // 4 choices for the even number of the pungs
+            // New suit iteration logic to get 3 permutations
+            for (const chowSuit of ALL_SUITS_ORDERED) {
+                const otherSuits = ALL_SUITS_ORDERED.filter(s => s !== chowSuit);
+                const pungSuit1 = otherSuits[0]; // First of the remaining suits
+                const pungSuit2 = otherSuits[1]; // Second of the remaining suits
+
+                const currentVariationSlots = [];
+                let groupIndex = 0;
+
+                // Kong of generic Flowers (4 tiles)
+                currentVariationSlots.push(...this._createTileGroup('F', 4, 'kong', groupIndex++));
+                
+                // Singles of 2,4,6,8 in chowSuit (4 tiles)
+                for (const num of evenNumbers) {
+                    currentVariationSlots.push(...this._createTileGroup(`${num}${chowSuit}`, 1, 'single', groupIndex++, 1));
+                }
+                
+                // Pung of 'evenNum' in pungSuit1 (3 tiles)
+                currentVariationSlots.push(...this._createTileGroup(`${evenNum}${pungSuit1}`, 3, 'pung', groupIndex++));
+                
+                // Pung of 'evenNum' in pungSuit2 (3 tiles)
+                currentVariationSlots.push(...this._createTileGroup(`${evenNum}${pungSuit2}`, 3, 'pung', groupIndex++));
+
+                // Total tiles: 4 (flowers) + 4 (singles) + 3 (pung1) + 3 (pung2) = 14 tiles
+                if (currentVariationSlots.length === 14) {
+                    variations.push({
+                        name: `Even ${evenNum} - ${chowSuit} singles, ${pungSuit1}/${pungSuit2} pungs`,
+                        slots: currentVariationSlots,
+                        description: `Kong of Flowers, singles of 2,4,6,8 in ${chowSuit}, pungs of ${evenNum} in ${pungSuit1} and ${pungSuit2}`
+                    });
                 }
             }
         }
@@ -450,7 +492,7 @@ class HandAnalyzer {
         const jokers = hand.length - nonJokerTiles.length;
         const results = [];
         this.templates.forEach(template => {
-            const { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations } = this.analyzeTemplate(template, nonJokerTiles, jokers);
+            const { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations, topTierMatchResults, totalGeneratedVariations } = this.analyzeTemplate(template, nonJokerTiles, jokers);
 
             if (bestOverallMatch) { // A best overall match (by score) was found
                 results.push({
@@ -460,7 +502,9 @@ class HandAnalyzer {
                     pointValue: template.pointValue,
                     ...bestOverallMatch, // Spread details of the highest scoring match for detailed view
                     summaryMatchedTiles: maxMatchedTilesCount, // 't' for summary
-                    summaryVariationCount: countMaxTilesVariations // 'v' for summary
+                    summaryVariationCount: countMaxTilesVariations, // 'v' for summary
+                    topTierMatchResults: topTierMatchResults, // Array of match results for highlighting
+                    summaryTotalVariations: totalGeneratedVariations // Total variations for this template
                 });
             }
         });
@@ -470,13 +514,14 @@ class HandAnalyzer {
     analyzeTemplate(template, nonJokerTiles, availableJokers) {
         let bestOverallMatch = null;
         let maxMatchedTilesCount = -1;
-        let countMaxTilesVariations = 0;
         const allMatchResults = []; // This will store results from the first loop
+        const topTierMatchResults = []; // Stores matchResults for variations achieving maxMatchedTilesCount
 
         const variations = template.generateVariations();
+        const totalGeneratedVariations = variations ? variations.length : 0;
 
         if (!variations || variations.length === 0) {
-            return { bestOverallMatch: null, maxMatchedTilesCount: 0, countMaxTilesVariations: 0 };
+            return { bestOverallMatch: null, maxMatchedTilesCount: 0, countMaxTilesVariations: 0, topTierMatchResults: [], totalGeneratedVariations: 0 };
         }
 
         // 1st loop: find maxMatchedTilesCount and bestOverallMatch
@@ -494,26 +539,65 @@ class HandAnalyzer {
             }
         }
 
-        // 2nd loop: count variations achieving maxMatchedTilesCount
+        // 2nd loop: collect variations achieving maxMatchedTilesCount
         if (maxMatchedTilesCount > -1 && allMatchResults.length > 0) {
             for (let i = 0; i < allMatchResults.length; i++) {
                 const res = allMatchResults[i];
                 if (res.matchedTilesCount === maxMatchedTilesCount) {
-                    countMaxTilesVariations++;
+                    topTierMatchResults.push(res);
                 }
             }
         }
-        return { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations };
+        const countMaxTilesVariations = topTierMatchResults.length;
+        return { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations, topTierMatchResults, totalGeneratedVariations };
     }
 }
 const handAnalyzer = new HandAnalyzer();
 
+// --- Highlighting Logic ---
+function updateHandHighlighting(naturalTilesToHighlight, usedJokersCount) {
+    const handDisplay = document.getElementById('handDisplay');
+    const displayedTileElements = Array.from(handDisplay.children);
+
+    // 1. Clear all existing highlights
+    displayedTileElements.forEach(tileEl => tileEl.classList.remove('tile-highlighted'));
+
+    if (!naturalTilesToHighlight && usedJokersCount === 0) return; // Nothing to highlight
+
+    const tilesToHighlightCopy = naturalTilesToHighlight ? [...naturalTilesToHighlight] : [];
+    let jokersToHighlight = usedJokersCount || 0;
+
+    // 2. Highlight natural tiles
+    // Iterate through displayed tiles. If a tile matches one in tilesToHighlightCopy, highlight it and remove from copy.
+    for (const tileEl of displayedTileElements) {
+        if (tileEl.dataset.code.startsWith('j')) continue; // Skip jokers for now
+
+        const indexInCopyToHighlight = tilesToHighlightCopy.indexOf(tileEl.dataset.code);
+        if (indexInCopyToHighlight !== -1) {
+            tileEl.classList.add('tile-highlighted');
+            tilesToHighlightCopy.splice(indexInCopyToHighlight, 1); // Remove highlighted tile from copy
+        }
+    }
+
+    // 3. Highlight jokers
+    // Iterate through displayed joker tiles and highlight the required number.
+    for (const tileEl of displayedTileElements) {
+        if (jokersToHighlight === 0) break; // All required jokers highlighted
+        if (tileEl.dataset.code.startsWith('j')) {
+            tileEl.classList.add('tile-highlighted');
+            jokersToHighlight--;
+        }
+    }
+}
+
+// --- UI Interaction ---
 function createTileElement(tileCode) {
     if (!tileCode) return null;
 
     const tile = document.createElement('div');
     tile.className = 'tile';
     tile.dataset.code = tileCode; // Store original code for debugging/sorting
+    // ... rest of your code remains the same ...
 
     let suit = '', value = '';
 
@@ -661,7 +745,20 @@ document.getElementById('analyzeBtn').onclick = function() {
             const row = document.createElement('div');
             row.className = 'summary-row';
             row.dataset.templateId = templateAnalysis.templateId; // For future click functionality
-            row.textContent = `${templateAnalysis.templateName} tiles=${templateAnalysis.summaryMatchedTiles} vars=${templateAnalysis.summaryVariationCount}`;
+            
+            // Store the detailed match results for highlighting and initialize variation index
+            row.topTierMatchResults = templateAnalysis.topTierMatchResults || []; // Ensure it's an array
+            row.dataset.currentVariationIndex = -1; // Initialize for cycling through variations
+
+            const mainText = `${templateAnalysis.templateName} tiles=${templateAnalysis.summaryMatchedTiles} vars=${templateAnalysis.summaryVariationCount} totvars=${templateAnalysis.summaryTotalVariations}`;
+            
+            const variationDisplaySpan = document.createElement('span');
+            variationDisplaySpan.className = 'variation-display';
+            // This span will be updated on click to show e.g., "(Variation 1 of 3)"
+
+            row.innerHTML = mainText + ' ';
+            row.appendChild(variationDisplaySpan);
+            
             if (summaryDisplayElement) summaryDisplayElement.appendChild(row);
         });
     } else {
@@ -671,7 +768,45 @@ document.getElementById('analyzeBtn').onclick = function() {
     // Populate Detailed JSON Display
     const jsonString = JSON.stringify(analysisResultsArray, null, 2);
     detailedResultDisplay.textContent = jsonString;
+
+    // Add click listener for summary rows to handle highlighting
+    if (summaryDisplayElement) {
+        summaryDisplayElement.removeEventListener('click', handleSummaryRowClick); // Remove old listener if any
+        summaryDisplayElement.addEventListener('click', handleSummaryRowClick);
+    }
 };
+
+function handleSummaryRowClick(event) {
+    const clickedRow = event.target.closest('.summary-row');
+    if (!clickedRow) return;
+
+    const topMatches = clickedRow.topTierMatchResults;
+    if (!topMatches || topMatches.length === 0) {
+        updateHandHighlighting([], 0); // Clear highlights if no variations
+        const variationDisplay = clickedRow.querySelector('.variation-display');
+        if (variationDisplay) variationDisplay.textContent = '';
+        return;
+    }
+
+    let currentIndex = parseInt(clickedRow.dataset.currentVariationIndex, 10);
+    currentIndex++;
+    if (currentIndex >= topMatches.length) {
+        currentIndex = 0;
+    }
+    clickedRow.dataset.currentVariationIndex = currentIndex;
+
+    const currentMatch = topMatches[currentIndex];
+    updateHandHighlighting(currentMatch.matchedTiles, currentMatch.usedJokers);
+
+    const variationDisplay = clickedRow.querySelector('.variation-display');
+    if (variationDisplay) {
+        if (topMatches.length > 0) {
+            variationDisplay.textContent = `(Variation ${currentIndex + 1} of ${topMatches.length})`;
+        } else {
+            variationDisplay.textContent = '';
+        }
+    }
+}
 
 document.getElementById('sortSuitBtn').onclick = function() {
     if (!currentHand.length) return;
