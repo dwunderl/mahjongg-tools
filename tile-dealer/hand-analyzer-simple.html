@@ -6,8 +6,23 @@
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 2em auto; }
         button { margin: 0.5em 0.5em 0.5em 0; padding: 0.5em 1.2em; font-size: 1em; }
-        #handDisplay { font-size: 1.1em; margin: 1em 0; background: #f8f8f8; padding: 0.5em; border-radius: 4px; }
+        #handDisplay { font-size: 1.1em; margin: 1em 0; background: #f8f8f8; padding: 0.5em; border-radius: 4px; min-width: 690px; white-space: nowrap; overflow-x: auto; }
         pre { background: #f3f3f3; padding: 1em; border-radius: 4px; }
+        #analysisSummaryDisplay {
+            background: #e8f0fe; /* Light blue background */
+            padding: 0.5em;
+            border-radius: 4px;
+            margin-bottom: 1em; /* Space before detailed JSON results */
+            border: 1px solid #cddcec;
+        }
+        .summary-row {
+            padding: 0.25em 0.5em;
+            font-family: monospace;
+            border-bottom: 1px dashed #d0d8e0;
+        }
+        .summary-row:last-child {
+            border-bottom: none;
+        }
         .tile {
             width: 45px; /* Adjusted for better fit */
             height: 65px; /* Adjusted for better fit */
@@ -53,6 +68,7 @@
 <button id="sortSuitBtn">Sort by Suit</button>
 <button id="sortNumBtn">Sort by Number</button>
 <div id="handDisplay">(No hand yet)</div>
+<div id="analysisSummaryDisplay"></div>
 <pre id="resultDisplay">(No analysis yet)</pre>
 <script>
 // --- Tile Set (simplified, update as needed) ---
@@ -347,19 +363,22 @@ class TileMatcher {
         this.variation = variation.slots || variation;
         this.availableJokers = availableJokers;
         this.variationCopy = JSON.parse(JSON.stringify(this.variation));
+
         // First pass: try to match exact tiles
         this.matchExactTiles();
         // Second pass: use jokers to fill remaining slots in valid groups
         this.matchWithJokers();
         const score = this.calculateScore();
         const maxPossibleScore = this.variation.length;
-        return {
+        const resultToReturn = {
             score,
             maxPossibleScore,
             matchedTiles: [...this.matchedTiles],
+            matchedTilesCount: this.matchedTiles.length, // Ensure this is returned for summary
             usedJokers: this.usedJokers,
             variation: this.variationCopy
         };
+        return resultToReturn;
     }
     matchExactTiles() {
         const handCopy = [...this.hand];
@@ -431,14 +450,17 @@ class HandAnalyzer {
         const jokers = hand.length - nonJokerTiles.length;
         const results = [];
         this.templates.forEach(template => {
-            const result = this.analyzeTemplate(template, nonJokerTiles, jokers);
-            if (result) {
+            const { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations } = this.analyzeTemplate(template, nonJokerTiles, jokers);
+
+            if (bestOverallMatch) { // A best overall match (by score) was found
                 results.push({
                     templateId: template.templateId,
                     templateName: template.name,
                     category: template.category,
                     pointValue: template.pointValue,
-                    ...result
+                    ...bestOverallMatch, // Spread details of the highest scoring match for detailed view
+                    summaryMatchedTiles: maxMatchedTilesCount, // 't' for summary
+                    summaryVariationCount: countMaxTilesVariations // 'v' for summary
                 });
             }
         });
@@ -446,18 +468,42 @@ class HandAnalyzer {
         return results;
     }
     analyzeTemplate(template, nonJokerTiles, availableJokers) {
-        let bestMatch = null;
+        let bestOverallMatch = null;
+        let maxMatchedTilesCount = -1;
+        let countMaxTilesVariations = 0;
+        const allMatchResults = []; // This will store results from the first loop
+
         const variations = template.generateVariations();
-        for (const variation of variations) {
-            const match = this.tileMatcher.matchVariation(nonJokerTiles, variation, availableJokers);
-            if (!bestMatch || match.score > bestMatch.score) {
-                bestMatch = match;
+
+        if (!variations || variations.length === 0) {
+            return { bestOverallMatch: null, maxMatchedTilesCount: 0, countMaxTilesVariations: 0 };
+        }
+
+        // 1st loop: find maxMatchedTilesCount and bestOverallMatch
+        for (let i = 0; i < variations.length; i++) {
+            const variation = variations[i];
+            const matchResult = this.tileMatcher.matchVariation(nonJokerTiles, variation, availableJokers);
+            allMatchResults.push(matchResult);
+
+            if (!bestOverallMatch || matchResult.score > bestOverallMatch.score) {
+                bestOverallMatch = matchResult;
             }
-            if (bestMatch.score === bestMatch.maxPossibleScore) {
-                break;
+
+            if (matchResult.matchedTilesCount > maxMatchedTilesCount) {
+                maxMatchedTilesCount = matchResult.matchedTilesCount;
             }
         }
-        return bestMatch;
+
+        // 2nd loop: count variations achieving maxMatchedTilesCount
+        if (maxMatchedTilesCount > -1 && allMatchResults.length > 0) {
+            for (let i = 0; i < allMatchResults.length; i++) {
+                const res = allMatchResults[i];
+                if (res.matchedTilesCount === maxMatchedTilesCount) {
+                    countMaxTilesVariations++;
+                }
+            }
+        }
+        return { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations };
     }
 }
 const handAnalyzer = new HandAnalyzer();
@@ -594,14 +640,37 @@ document.getElementById('generateBtn').onclick = function() {
     currentHand = generateRandomHand();
     renderHand(currentHand, handDisplay);
     resultDisplay.textContent = '(No analysis yet)';
+    const summaryDisplayElement = document.getElementById('analysisSummaryDisplay');
+    if (summaryDisplayElement) summaryDisplayElement.innerHTML = ''; // Clear summary display
 };
 document.getElementById('analyzeBtn').onclick = function() {
-    if (!currentHand.length) {
-        resultDisplay.textContent = 'No hand to analyze!';
+    const detailedResultDisplay = document.getElementById('resultDisplay');
+    const summaryDisplayElement = document.getElementById('analysisSummaryDisplay'); // Get reference
+
+    if (!currentHand || currentHand.length === 0) { // More robust check
+        if(detailedResultDisplay) detailedResultDisplay.textContent = '(Generate a hand first)';
+        if (summaryDisplayElement) summaryDisplayElement.innerHTML = ''; // Clear summary display as well
         return;
     }
-    const result = handAnalyzer.analyzeHand(currentHand);
-    resultDisplay.textContent = JSON.stringify(result, null, 2);
+    const analysisResultsArray = handAnalyzer.analyzeHand(currentHand);
+
+    // Populate Summary Display
+    if (summaryDisplayElement) summaryDisplayElement.innerHTML = ''; // Clear previous summary
+    if (analysisResultsArray && analysisResultsArray.length > 0) {
+        analysisResultsArray.forEach(templateAnalysis => {
+            const row = document.createElement('div');
+            row.className = 'summary-row';
+            row.dataset.templateId = templateAnalysis.templateId; // For future click functionality
+            row.textContent = `${templateAnalysis.templateName} tiles=${templateAnalysis.summaryMatchedTiles} vars=${templateAnalysis.summaryVariationCount}`;
+            if (summaryDisplayElement) summaryDisplayElement.appendChild(row);
+        });
+    } else {
+        if (summaryDisplayElement) summaryDisplayElement.textContent = '(No analysis summary available)';
+    }
+
+    // Populate Detailed JSON Display
+    const jsonString = JSON.stringify(analysisResultsArray, null, 2);
+    detailedResultDisplay.textContent = jsonString;
 };
 
 document.getElementById('sortSuitBtn').onclick = function() {
