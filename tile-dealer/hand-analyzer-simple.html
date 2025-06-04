@@ -8,12 +8,50 @@
         button { margin: 0.5em 0.5em 0.5em 0; padding: 0.5em 1.2em; font-size: 1em; }
         #handDisplay { font-size: 1.1em; margin: 1em 0; background: #f8f8f8; padding: 0.5em; border-radius: 4px; }
         pre { background: #f3f3f3; padding: 1em; border-radius: 4px; }
+        .tile {
+            width: 45px; /* Adjusted for better fit */
+            height: 65px; /* Adjusted for better fit */
+            border: 1px solid #999;
+            border-radius: 4px;
+            background-color: #fff9f0; /* Light cream */
+            margin: 2px;
+            display: inline-flex; /* For horizontal layout */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            font-size: 18px; /* Larger number */
+            font-weight: bold;
+            text-align: center;
+            padding: 2px;
+            box-sizing: border-box;
+            position: relative; /* For potential absolute positioning of suit symbols */
+        }
+        .tile span { /* For the small suit letter */
+            font-size: 0.6em;
+            font-weight: normal;
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+        }
+        .tile.joker { background-color: #e6e6fa; color: #551a8b; } /* Lavender */
+        .tile.flower { background-color: #fffacd; color: #ff4500; } /* Lemon chiffon */
+        .tile.wind { background-color: #add8e6; color: #00008b; } /* Light blue */
+        .tile.dragon { background-color: #90ee90; color: #006400; } /* Default Light green for dragons */
+        .tile.dragon-rd { background-color: #ffcccb; color: #dc143c; } /* Light Red background, Crimson text for Red Dragon */
+        .tile.dragon-gd { background-color: #90ee90; color: #006400; } /* Explicit Light Green for Green Dragon */
+        .tile.dragon-wd { background-color: #f8f8ff; color: #404040; } /* Ghost White background, Dark Gray text for White Dragon */
+        .tile.bam { color: #006400; } /* Dark Green for Bamboo */
+        .tile.crack { color: #dc143c; } /* Crimson for Characters */
+        .tile.dot { color: #00008b; } /* Dark Blue for Dots */
     </style>
 </head>
 <body>
 <h2>Mahjong Hand Analyzer (Simple)</h2>
 <button id="generateBtn">Generate Random Hand</button>
 <button id="analyzeBtn">Analyze Hand</button>
+<button id="sortSuitBtn">Sort by Suit</button>
+<button id="sortNumBtn">Sort by Number</button>
 <div id="handDisplay">(No hand yet)</div>
 <pre id="resultDisplay">(No analysis yet)</pre>
 <script>
@@ -24,7 +62,7 @@ const TILES = [
     ...Array.from({length: 9}, (_,i) => `${i+1}dot`),
     'rd','gd','wd', // Dragons
     'e','s','w','n', // Winds
-    'f1','f2','f3','f4' // Flowers
+    'F','F','F','F' // Flowers (all are 'F' as they are interchangeable)
 ];
 
 // --- Random Hand Generator ---
@@ -203,8 +241,7 @@ class KongKongPairWithFlowersAndDragonsTemplate extends HandTemplate {
                     const variation = [];
                     let groupIndex = 0;
                     // Pair of flowers
-                    variation.push(...this._createTileGroup('f1', 1, 'pair', groupIndex++, true));
-                    variation.push(...this._createTileGroup('f2', 1, 'pair', groupIndex-1, true));
+                    variation.push(...this._createTileGroup('F', 2, 'pair', groupIndex++, true)); // Pair of generic Flowers
                     // Kongs
                     variation.push(...this._createTileGroup(`${number}${SUITS[i]}`, 4, 'kong', groupIndex++));
                     variation.push(...this._createTileGroup(`${number}${SUITS[j]}`, 4, 'kong', groupIndex++));
@@ -262,7 +299,7 @@ class EvenChowEvenPungsFlowersTemplate extends HandTemplate {
                         if (pungSuit2 === chowSuit || pungSuit2 === pungSuit1) continue;
                         const variation = [];
                         let groupIndex = 0;
-                        variation.push(...this._createTileGroup('f1', 4, 'kong', groupIndex++));
+                        variation.push(...this._createTileGroup('F', 4, 'kong', groupIndex++)); // Kong of generic Flowers
                         for (const num of evenNumbers) {
                             variation.push(...this._createTileGroup(`${num}${chowSuit}`, 1, 'single', groupIndex++, 1));
                         }
@@ -425,6 +462,129 @@ class HandAnalyzer {
 }
 const handAnalyzer = new HandAnalyzer();
 
+function createTileElement(tileCode) {
+    if (!tileCode) return null;
+
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.dataset.code = tileCode; // Store original code for debugging/sorting
+
+    let suit = '', value = '';
+
+    if (tileCode.startsWith('j')) { // Joker
+        tile.textContent = 'JOK'; // Short for Joker
+        tile.classList.add('joker');
+        suit = 'JOKER';
+        value = tileCode; // e.g., j1
+    } else if (tileCode === 'F') { // Flower
+        tile.textContent = 'FLR'; // Short for Flower
+        tile.classList.add('flower');
+        suit = 'FLOWER';
+        value = 'F';
+    } else if (['e', 's', 'w', 'n'].includes(tileCode.toLowerCase())) { // Winds
+        tile.textContent = tileCode.toUpperCase();
+        tile.classList.add('wind');
+        suit = 'WIND';
+        value = tileCode;
+    } else if (['rd', 'gd', 'wd'].includes(tileCode.toLowerCase())) { // Dragons
+        tile.textContent = tileCode.toUpperCase();
+        tile.classList.add('dragon');
+        if (tileCode.toLowerCase() === 'rd') tile.classList.add('dragon-rd');
+        else if (tileCode.toLowerCase() === 'gd') tile.classList.add('dragon-gd');
+        else if (tileCode.toLowerCase() === 'wd') tile.classList.add('dragon-wd');
+        suit = 'DRAGON';
+        value = tileCode;
+    } else { // Suited tiles: 1bam, 5dot, 9crack etc.
+        const match = tileCode.match(/^(\d+)([a-z]+)$/);
+        if (match) {
+            const num = match[1];
+            const suitName = match[2];
+            tile.textContent = num; // Display the number
+            const suitSpan = document.createElement('span');
+            // suitSpan.style.fontSize = '0.7em'; // Handled by .tile span CSS
+            // suitSpan.style.display = 'block';
+            suitSpan.textContent = suitName.substring(0,1).toUpperCase(); // B, C, D
+            tile.appendChild(suitSpan);
+
+            tile.classList.add(suitName); // e.g., 'bam', 'crack', 'dot' for specific styling
+            suit = suitName.toUpperCase();
+            value = num;
+        } else {
+            tile.textContent = tileCode; // Fallback for unknown
+        }
+    }
+    tile.dataset.suit = suit;
+    tile.dataset.value = value; // Store parsed value for sorting
+
+    return tile;
+}
+
+const SUIT_ORDER = { BAM: 1, CRACK: 2, DOT: 3, WIND: 4, DRAGON: 5, FLOWER: 6, JOKER: 7 };
+const WIND_ORDER = { e: 1, s: 2, w: 3, n: 4 };
+const DRAGON_ORDER = { rd: 1, gd: 2, wd: 3 };
+
+function getTileSortableValues(tileCode) {
+    let suit, valueNum, suitOrder, valueOrder;
+
+    if (tileCode.startsWith('j')) {
+        suit = 'JOKER';
+        valueNum = parseInt(tileCode.substring(1)) || 0;
+    } else if (tileCode === 'F') {
+        suit = 'FLOWER';
+        valueNum = 1;
+    } else if (['e', 's', 'w', 'n'].includes(tileCode.toLowerCase())) {
+        suit = 'WIND';
+        valueNum = WIND_ORDER[tileCode.toLowerCase()];
+    } else if (['rd', 'gd', 'wd'].includes(tileCode.toLowerCase())) {
+        suit = 'DRAGON';
+        valueNum = DRAGON_ORDER[tileCode.toLowerCase()];
+    } else {
+        const match = tileCode.match(/^(\d+)([a-z]+)$/);
+        if (match) {
+            valueNum = parseInt(match[1]);
+            suit = match[2].toUpperCase();
+        } else {
+            suit = 'UNKNOWN'; valueNum = 99;
+        }
+    }
+    suitOrder = SUIT_ORDER[suit] || 99;
+    valueOrder = valueNum;
+    return { suit, valueNum, suitOrder, valueOrder };
+}
+
+function sortHand(handArray, sortBySuitPrimary = true) {
+    handArray.sort((a, b) => {
+        const valA = getTileSortableValues(a);
+        const valB = getTileSortableValues(b);
+
+        if (sortBySuitPrimary) {
+            if (valA.suitOrder !== valB.suitOrder) {
+                return valA.suitOrder - valB.suitOrder;
+            }
+            return valA.valueOrder - valB.valueOrder;
+        } else { // Sort by Number (value) first
+            if (valA.valueOrder !== valB.valueOrder) {
+                return valA.valueOrder - valB.valueOrder;
+            }
+            return valA.suitOrder - valB.suitOrder;
+        }
+    });
+}
+
+function renderHand(handArray, displayElement) {
+    displayElement.innerHTML = ''; // Clear previous display
+    if (!handArray || handArray.length === 0) {
+        displayElement.textContent = '(No hand yet)';
+        return;
+    }
+    handArray.forEach(tileCode => {
+        const tileEl = createTileElement(tileCode);
+        if (tileEl) {
+            displayElement.appendChild(tileEl);
+        }
+    });
+}
+
 // --- UI Logic ---
 let currentHand = [];
 const handDisplay = document.getElementById('handDisplay');
@@ -432,7 +592,7 @@ const resultDisplay = document.getElementById('resultDisplay');
 
 document.getElementById('generateBtn').onclick = function() {
     currentHand = generateRandomHand();
-    handDisplay.textContent = currentHand.join(', ');
+    renderHand(currentHand, handDisplay);
     resultDisplay.textContent = '(No analysis yet)';
 };
 document.getElementById('analyzeBtn').onclick = function() {
@@ -442,6 +602,18 @@ document.getElementById('analyzeBtn').onclick = function() {
     }
     const result = handAnalyzer.analyzeHand(currentHand);
     resultDisplay.textContent = JSON.stringify(result, null, 2);
+};
+
+document.getElementById('sortSuitBtn').onclick = function() {
+    if (!currentHand.length) return;
+    sortHand(currentHand, true); // true for sortBySuitPrimary
+    renderHand(currentHand, handDisplay);
+};
+
+document.getElementById('sortNumBtn').onclick = function() {
+    if (!currentHand.length) return;
+    sortHand(currentHand, false); // false for sortBySuitPrimary (so sort by number first)
+    renderHand(currentHand, handDisplay);
 };
 </script>
 </body>
