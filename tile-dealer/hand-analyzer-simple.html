@@ -90,7 +90,8 @@ const TILES = [
     ...Array.from({length: 9}, (_,i) => `${i+1}dot`),
     'rd','gd','wd', // Dragons
     'e','s','w','n', // Winds
-    'F','F','F','F' // Flowers (all are 'F' as they are interchangeable)
+    'F','F','F','F', // Flowers (all are 'F' as they are interchangeable)
+    'J','J','J','J'  // Jokers (all are 'J' as they are completely interchangeable)
 ];
 
 // --- Random Hand Generator ---
@@ -385,12 +386,24 @@ class EvenChowEvenPungsFlowersTemplate extends HandTemplate {
         }
         return group;
     }
-    validateHand(tiles) { return { matched: false, score: 0, matchedTiles: [] }; }
+    
+    validateHand(tiles) { 
+        return { 
+            matched: false, 
+            score: 0, 
+            matchedTiles: [] 
+        }; 
+    }
 }
 
 // --- TileMatcher ---
 class TileMatcher {
-    constructor() { this.reset(); }
+    constructor() {
+        this.reset();
+        this.onJokerMatchAttempt = null; // Callback for joker match attempts
+        this.jcheck = 0; // Initialize jcheck counter
+    }
+    
     reset() {
         this.hand = [];
         this.variation = [];
@@ -398,80 +411,376 @@ class TileMatcher {
         this.usedJokers = 0;
         this.matchedTiles = [];
         this.variationCopy = [];
+        this.jokerComparisons = 0;
+        this.jcheck = 0; // Reset jcheck counter
     }
+    
     matchVariation(hand, variation, availableJokers = 0) {
-        this.reset();
-        this.hand = [...hand];
-        this.variation = variation.slots || variation;
-        this.availableJokers = availableJokers;
-        this.variationCopy = JSON.parse(JSON.stringify(this.variation));
-
-        // First pass: try to match exact tiles
-        this.matchExactTiles();
-        // Second pass: use jokers to fill remaining slots in valid groups
-        this.matchWithJokers();
-        const score = this.calculateScore();
-        const maxPossibleScore = this.variation.length;
-        const resultToReturn = {
-            score,
-            maxPossibleScore,
-            matchedTiles: [...this.matchedTiles],
-            matchedTilesCount: this.matchedTiles.length, // Ensure this is returned for summary
-            usedJokers: this.usedJokers,
-            variation: this.variationCopy
-        };
-        return resultToReturn;
+        try {
+            this.reset();
+            this.hand = [...hand];
+            this.variation = Array.isArray(variation) ? variation : (variation.slots || []);
+            this.availableJokers = availableJokers;
+            this.variationCopy = JSON.parse(JSON.stringify(this.variation));
+            
+            console.log('\n=== Starting matchVariation ===');
+            console.log('Hand:', this.hand);
+            console.log('Variation:', this.variation);
+            console.log('Available jokers:', this.availableJokers);
+            
+            // First pass: exact matches (non-joker tiles only)
+            console.log('\n--- EXACT MATCHING ---');
+            const exactMatch = this.matchExactTiles();
+            console.log('After exact matching - hand:', this.hand);
+            console.log('Exact matches:', exactMatch.matchedTiles ? exactMatch.matchedTiles.length : 0);
+            
+            // Extract jokers from remaining hand (case insensitive)
+            const jokersInHand = this.hand.filter(t => t.toUpperCase().startsWith('J'));
+            const jokersToUse = Math.min(jokersInHand.length, availableJokers);
+            const jokersForMatching = jokersInHand.slice(0, jokersToUse);
+            
+            console.log('\n--- JOKER MATCHING ---');
+            console.log('Jokers in hand:', jokersInHand);
+            console.log('Jokers available for matching:', jokersToUse);
+            
+            let jokerMatch = { usedJokers: 0, jokerMatches: [], jokerComparisons: 0 };
+            if (jokersForMatching.length > 0) {
+                jokerMatch = this.matchWithJokers(jokersForMatching);
+                console.log('Joker match results:', jokerMatch);
+            } else {
+                console.log('No jokers available for matching');
+            }
+            
+            const score = this.calculateScore();
+            const maxPossibleScore = this.variationCopy.length;
+            
+            // Collect all matched tiles
+            const matchedTiles = [
+                ...(exactMatch.matchedTiles || []).map(m => m.handTile),
+                ...(jokerMatch.jokerMatches || []).map(m => m.handTile)
+            ];
+            
+            // Get the jcheck value from the callback if it exists
+            const jcheck = typeof this.onJokerMatchAttempt === 'function' ? this.jcheck || 0 : 0;
+            
+            const result = {
+                score,
+                maxPossibleScore,
+                matchedTiles,
+                matchedTilesCount: matchedTiles.length,
+                usedJokers: jokerMatch.usedJokers || 0,
+                jokerComparisons: jokerMatch.jokerComparisons || 0,
+                jcheck: jcheck, // Use the jcheck value from the callback
+                variation: this.variationCopy,
+                exactMatches: exactMatch.matchedTiles || [],
+                jokerMatches: jokerMatch.jokerMatches || []
+            };
+            
+            console.log('\n=== MATCHING COMPLETE ===');
+            console.log('Final result:', result);
+            
+            return result;
+            
+        } catch (error) {
+            console.error('Error in matchVariation:', error);
+            return {
+                score: 0,
+                maxPossibleScore: 0,
+                matchedTiles: [],
+                matchedTilesCount: 0,
+                usedJokers: 0,
+                jokerComparisons: 0,
+                error: error.message 
+            };
+        }
     }
+    
     matchExactTiles() {
-        const handCopy = [...this.hand];
-        for (let i = 0; i < handCopy.length; i++) {
-            const tile = handCopy[i];
-            if (tile === undefined || tile === null) continue;
+        console.log('=== STARTING EXACT MATCHING ===');
+        console.log('Initial hand:', this.hand);
+        
+        const matchedTiles = [];
+        const remainingHand = [];
+        
+        // First, identify jokers (case insensitive)
+        const jokerTiles = this.hand.filter(tile => tile.toUpperCase().startsWith('J'));
+        const nonJokerTiles = this.hand.filter(tile => !jokerTiles.includes(tile));
+        
+        console.log('Non-joker tiles for exact matching:', nonJokerTiles);
+        console.log('Jokers found in hand:', jokerTiles);
+        
+        // First pass: try to match non-joker tiles
+        for (const handTile of nonJokerTiles) {
             let matched = false;
-            for (let j = 0; j < this.variation.length; j++) {
-                const slot = this.variation[j];
-                if (slot.matched) continue;
-                if (!slot || slot.tile === undefined) continue;
-                if (this.tilesMatch(tile, slot.tile)) {
-                    slot.matched = true;
-                    slot.usedJoker = false;
-                    this.matchedTiles.push(tile);
-                    handCopy.splice(i, 1);
-                    i--;
+            
+            for (const variationTile of this.variation) {
+                if (variationTile.matched) {
+                    continue; // Skip already matched slots
+                }
+                
+                if (this.tilesMatch(handTile, variationTile.tile)) {
+                    console.log(`Matched hand tile ${handTile} to variation tile ${variationTile.tile}`);
+                    
+                    const matchInfo = {
+                        handTile,
+                        variationTile: variationTile.tile,
+                        groupIndex: variationTile.groupIndex,
+                        position: variationTile.positionInGroup || 0,
+                        type: variationTile.type,
+                        isJoker: false
+                    };
+                    
+                    matchedTiles.push(matchInfo);
+                    variationTile.matched = true;
+                    variationTile.matchedTile = handTile;
                     matched = true;
+                    
+                    console.log('  Added match:', matchInfo);
+                    break;
+                }
+            }
+            
+            if (!matched) {
+                console.log(`No match found for hand tile: ${handTile}, adding to remaining hand`);
+                remainingHand.push(handTile);
+            }
+        }
+        
+        // Add all jokers to remaining hand for joker matching
+        console.log(`Adding ${jokerTiles.length} jokers to remaining hand`);
+        remainingHand.push(...jokerTiles);
+        
+        // Update hand to only include unmatched tiles
+        this.hand = remainingHand;
+        this.matchedTiles = [...this.matchedTiles, ...matchedTiles];
+        
+        console.log('=== EXACT MATCHING COMPLETE ===');
+        console.log('Matched tiles:', matchedTiles);
+        console.log('Remaining hand after exact matching:', remainingHand);
+        
+        return { matchedTiles };
+    }
+    
+    matchWithJokers(jokerTiles) {
+        console.log('\n=== STARTING JOKER MATCHING ===');
+        console.log('Jokers to try to place:', jokerTiles);
+        
+        const jokerMatches = [];
+        // Track jokers by their index in the original hand to handle duplicate jokers
+        const usedJokerIndices = new Set();
+        let jokerComparisons = 0;
+        
+        // Create an array of joker indices to track which jokers we've used
+        let jokerIndices = [];
+        for (let i = 0; i < this.hand.length; i++) {
+            if (this.hand[i].toUpperCase() === 'J') {
+                jokerIndices.push(i);
+            }
+        }
+        
+        // Process each joker one by one using their indices
+        while (jokerIndices.length > 0) {
+            const jokerIndex = jokerIndices.shift(); // Take the first joker index
+            const joker = this.hand[jokerIndex];
+            
+            if (usedJokerIndices.has(jokerIndex)) {
+                console.log(`Skipping already used joker at index ${jokerIndex}`);
+                continue;
+            }
+            
+            console.log(`\nProcessing joker: ${joker}`);
+            let jokerPlaced = false;
+            
+            // Notify that we're starting to match this joker
+            this.jcheck++; // Increment local counter
+            if (typeof this.onJokerMatchAttempt === 'function') {
+                this.onJokerMatchAttempt();
+            }
+            
+            // Find the first available valid slot in the variation
+            for (const slot of this.variation) {
+                jokerComparisons++;
+                
+                // Skip if slot is already matched or not a valid joker slot
+                if (slot.matched) {
+                    console.log(`  Skip slot ${slot.tile} (already matched)`);
+                    continue;
+                }
+                
+                if (!this.isValidJokerSlot(slot)) {
+                    console.log(`  Skip slot ${slot.tile} (not a valid joker slot)`);
+                    continue;
+                }
+                
+                console.log(`  Found valid slot for joker:`, slot);
+                
+                // Assign joker to this slot
+                slot.matched = true;
+                slot.matchedTile = joker;
+                slot.usedJoker = true;
+                usedJokerIndices.add(jokerIndex);
+                jokerPlaced = true;
+                
+                const matchInfo = {
+                    handTile: joker,
+                    variationTile: slot.tile,
+                    groupIndex: slot.groupIndex,
+                    position: slot.positionInGroup || 0,
+                    type: slot.type,
+                    isJoker: true
+                };
+                
+                jokerMatches.push(matchInfo);
+                console.log(`  Assigned joker ${joker} to slot ${slot.tile} in group ${slot.groupIndex}`, matchInfo);
+                break; // Move to next joker after placing this one
+            }
+            
+            if (!jokerPlaced) {
+                console.log(`  Could not place joker ${joker} - no valid slots available`);
+                // Put the joker back at the end of the queue to try again later
+                jokersToPlace.push(joker);
+                
+                // If we've gone through all jokers and couldn't place any, break to avoid infinite loop
+                if (jokerIndices.every(idx => usedJokerIndices.has(idx) || this.hand[idx] === joker)) {
+                    console.log('No more jokers can be placed, stopping');
                     break;
                 }
             }
         }
-        this.hand = handCopy;
+        
+        console.log('=== JOKER MATCHING COMPLETE ===');
+        console.log('Jokers used:', usedJokerIndices.size);
+        console.log('Joker matches:', jokerMatches);
+        
+        return {
+            usedJokers: usedJokerIndices.size,
+            jokerMatches,
+            jokerComparisons
+        };
     }
-    matchWithJokers() {
-        // Only use jokers if we have some available
-        if (this.availableJokers <= 0) return;
-        // Find all unmatched slots that are part of a valid group
-        // (For simplicity, just fill unmatched slots with jokers)
-        for (let j = 0; j < this.variation.length && this.availableJokers > 0; j++) {
-            const slot = this.variation[j];
-            if (!slot.matched) {
-                slot.matched = true;
-                slot.usedJoker = true;
-                this.matchedTiles.push('joker');
-                this.usedJokers++;
-                this.availableJokers--;
-            }
-        }
-    }
+    
     calculateScore() {
-        // Score: number of matched slots (excluding jokers)
-        return this.matchedTiles.filter(t => t !== 'joker').length;
+        return this.variation.filter(slot => slot.matched).length;
     }
+    
     tilesMatch(tileA, tileB) {
-        // Case-insensitive match
-        return (tileA || '').toLowerCase() === (tileB || '').toLowerCase();
+        // If either tile is a joker, they don't match (jokers are handled separately)
+        if ((typeof tileA === 'string' && tileA.toUpperCase().startsWith('J')) || 
+            (typeof tileB === 'string' && tileB.toUpperCase().startsWith('J'))) {
+            return false;
+        }
+        
+        // Case-insensitive match for tile codes (e.g., '1b', 'N', 'F')
+        const valA = String(tileA || '').toLowerCase();
+        const valB = String(tileB || '').toLowerCase();
+        
+        // Special handling for flower tiles (all flowers match each other)
+        if ((valA === 'f' || valA.startsWith('f') || valA.endsWith('f')) &&
+            (valB === 'f' || valB.startsWith('f') || valB.endsWith('f'))) {
+            return true;
+        }
+        
+        return valA === valB;
+    }
+    
+    isValidJokerSlot(slot) {
+        // Jokers can only be used in pungs, kongs, or quints
+        const validTypes = ['pung', 'kong', 'quint'];
+        const slotType = (slot.type || '').toLowerCase();
+        const isValid = validTypes.includes(slotType);
+        
+        console.log(`  Slot ${slot.tile} details:`, {
+            type: slot.type,
+            groupIndex: slot.groupIndex,
+            positionInGroup: slot.positionInGroup,
+            matched: slot.matched,
+            isValidForJoker: isValid,
+            validTypes: validTypes
+        });
+        
+        return isValid;
     }
 }
 
-// --- HandAnalyzer ---
+// --- Template 5: NorthSouthOddNumbersTemplate ---
+class NorthSouthOddNumbersTemplate extends HandTemplate {
+    constructor() {
+        super({
+            templateId: 'north_south_odd_numbers',
+            name: 'North South Odd Numbers in 3 Suits',
+            description: 'Kongs of N and S, then for one odd number (1,3,5,7,9): a single in suit1, a pair in suit2, and a pung in suit3, across all 6 permutations of suits.',
+            category: 'Winds - Dragons',
+            pointValue: 25,
+            number: 6 // As specified by user
+        });
+    }
+
+    generateVariations() {
+        const variations = [];
+        const SUITS = ['bam', 'crack', 'dot']; // Full suit names
+        const ODD_NUMBERS = [1, 3, 5, 7, 9];
+
+        for (const oddNum of ODD_NUMBERS) {
+            // Generate all 6 permutations of SUITS
+            for (let i = 0; i < SUITS.length; i++) {
+                for (let j = 0; j < SUITS.length; j++) {
+                    if (i === j) continue;
+                    for (let k = 0; k < SUITS.length; k++) {
+                        if (k === i || k === j) continue;
+
+                        const suit1 = SUITS[i]; // e.g., 'bam'
+                        const suit2 = SUITS[j];
+                        const suit3 = SUITS[k];
+
+                        const currentVariationSlots = [];
+                        let groupIndex = 0;
+
+                        // Kong of North Wind
+                        currentVariationSlots.push(...this._createTileGroup('N', 4, 'kong', groupIndex++));
+                        // Kong of South Wind
+                        currentVariationSlots.push(...this._createTileGroup('S', 4, 'kong', groupIndex++));
+                        
+                        // Single of oddNum in suit1 (e.g., '1bam')
+                        currentVariationSlots.push(...this._createTileGroup(`${oddNum}${suit1}`, 1, 'single', groupIndex++));
+                        // Pair of oddNum in suit2 (e.g., '1crack')
+                        currentVariationSlots.push(...this._createTileGroup(`${oddNum}${suit2}`, 2, 'pair', groupIndex++));
+                        // Pung of oddNum in suit3 (e.g., '1dot')
+                        currentVariationSlots.push(...this._createTileGroup(`${oddNum}${suit3}`, 3, 'pung', groupIndex++));
+
+                        if (currentVariationSlots.length === 14) {
+                            variations.push({
+                                name: `N/S Kongs, ${oddNum}s: ${suit1[0].toUpperCase()}(Sgl), ${suit2[0].toUpperCase()}(Pr), ${suit3[0].toUpperCase()}(Pg)`,
+                                slots: currentVariationSlots,
+                                // Use full suit names in description for clarity
+                                description: `Kongs of N & S. Single ${oddNum}${suit1}, Pair ${oddNum}${suit2}, Pung ${oddNum}${suit3}.`
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        return variations;
+    }
+
+    _createTileGroup(tileCode, count, type, groupIndex) {
+        const group = [];
+        for (let i = 0; i < count; i++) {
+            group.push({
+                type,
+                tile: tileCode, // The specific tile code, e.g., '1b', 'N'
+                value: tileCode, // Actual tile value
+                groupIndex: groupIndex,
+                positionInGroup: i,
+                matched: false,
+                usedJoker: false
+            });
+        }
+        return group;
+    }
+    validateHand(tiles) { return { matched: false, score: 0, matchedTiles: [] }; }
+}
+
+// --- Hand Analyzer Core ---
 class HandAnalyzer {
     constructor() {
         this.templates = [];
@@ -483,16 +792,25 @@ class HandAnalyzer {
         this.templates.push(new Symmetrical13579AllSuitsTemplate());
         this.templates.push(new KongKongPairWithFlowersAndDragonsTemplate());
         this.templates.push(new EvenChowEvenPungsFlowersTemplate());
+        this.templates.push(new NorthSouthOddNumbersTemplate());
     }
     analyzeHand(hand) {
         if (!hand || hand.length === 0) {
             return [];
         }
-        const nonJokerTiles = hand.filter(tile => !tile.startsWith('j'));
-        const jokers = hand.length - nonJokerTiles.length;
+        // Count jokers (case insensitive)
+        const jokers = hand.filter(tile => tile.toUpperCase().startsWith('J')).length;
+        console.log(`Analyzing hand with ${jokers} jokers`);
         const results = [];
         this.templates.forEach(template => {
-            const { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations, topTierMatchResults, totalGeneratedVariations } = this.analyzeTemplate(template, nonJokerTiles, jokers);
+            const { 
+                bestOverallMatch, 
+                maxMatchedTilesCount, 
+                countMaxTilesVariations, 
+                topTierMatchResults, 
+                totalGeneratedVariations,
+                jcheck = 0 
+            } = this.analyzeTemplate(template, [...hand], jokers);
 
             if (bestOverallMatch) { // A best overall match (by score) was found
                 results.push({
@@ -504,7 +822,8 @@ class HandAnalyzer {
                     summaryMatchedTiles: maxMatchedTilesCount, // 't' for summary
                     summaryVariationCount: countMaxTilesVariations, // 'v' for summary
                     topTierMatchResults: topTierMatchResults, // Array of match results for highlighting
-                    summaryTotalVariations: totalGeneratedVariations // Total variations for this template
+                    summaryTotalVariations: totalGeneratedVariations, // Total variations for this template
+                    jcheck // Total joker matching attempts across all variations
                 });
             }
         });
@@ -516,18 +835,38 @@ class HandAnalyzer {
         let maxMatchedTilesCount = -1;
         const allMatchResults = []; // This will store results from the first loop
         const topTierMatchResults = []; // Stores matchResults for variations achieving maxMatchedTilesCount
+        
+        // Initialize joker matching attempt counter
+        let jcheck = 0;
 
         const variations = template.generateVariations();
         const totalGeneratedVariations = variations ? variations.length : 0;
 
         if (!variations || variations.length === 0) {
-            return { bestOverallMatch: null, maxMatchedTilesCount: 0, countMaxTilesVariations: 0, topTierMatchResults: [], totalGeneratedVariations: 0 };
+            return { 
+                bestOverallMatch: null, 
+                maxMatchedTilesCount: 0, 
+                countMaxTilesVariations: 0, 
+                topTierMatchResults: [], 
+                totalGeneratedVariations: 0,
+                jcheck: 0
+            };
         }
+
+        // Create a new TileMatcher instance with a callback to track joker checks
+        const tileMatcher = new TileMatcher();
+        tileMatcher.onJokerMatchAttempt = () => {
+            jcheck++;
+            return jcheck; // Return the updated count
+        };
 
         // 1st loop: find maxMatchedTilesCount and bestOverallMatch
         for (let i = 0; i < variations.length; i++) {
             const variation = variations[i];
-            const matchResult = this.tileMatcher.matchVariation(nonJokerTiles, variation, availableJokers);
+            const matchResult = tileMatcher.matchVariation(nonJokerTiles, variation, availableJokers);
+            
+            // Store the current jcheck value with this match result
+            matchResult.jcheck = jcheck;
             allMatchResults.push(matchResult);
 
             if (!bestOverallMatch || matchResult.score > bestOverallMatch.score) {
@@ -539,17 +878,27 @@ class HandAnalyzer {
             }
         }
 
+
         // 2nd loop: collect variations achieving maxMatchedTilesCount
         if (maxMatchedTilesCount > -1 && allMatchResults.length > 0) {
             for (let i = 0; i < allMatchResults.length; i++) {
                 const res = allMatchResults[i];
                 if (res.matchedTilesCount === maxMatchedTilesCount) {
+                    // Update each top tier result with the current jcheck
+                    res.jcheck = jcheck;
                     topTierMatchResults.push(res);
                 }
             }
         }
         const countMaxTilesVariations = topTierMatchResults.length;
-        return { bestOverallMatch, maxMatchedTilesCount, countMaxTilesVariations, topTierMatchResults, totalGeneratedVariations };
+        return { 
+            bestOverallMatch, 
+            maxMatchedTilesCount, 
+            countMaxTilesVariations, 
+            topTierMatchResults, 
+            totalGeneratedVariations,
+            jcheck // Include the jcheck counter in the return object
+        };
     }
 }
 const handAnalyzer = new HandAnalyzer();
@@ -557,36 +906,90 @@ const handAnalyzer = new HandAnalyzer();
 // --- Highlighting Logic ---
 function updateHandHighlighting(naturalTilesToHighlight, usedJokersCount) {
     const handDisplay = document.getElementById('handDisplay');
+    if (!handDisplay) return;
+    
     const displayedTileElements = Array.from(handDisplay.children);
 
     // 1. Clear all existing highlights
     displayedTileElements.forEach(tileEl => tileEl.classList.remove('tile-highlighted'));
 
-    if (!naturalTilesToHighlight && usedJokersCount === 0) return; // Nothing to highlight
+    if ((!naturalTilesToHighlight || naturalTilesToHighlight.length === 0) && !usedJokersCount) {
+        return; // Nothing to highlight
+    }
 
     const tilesToHighlightCopy = naturalTilesToHighlight ? [...naturalTilesToHighlight] : [];
     let jokersToHighlight = usedJokersCount || 0;
+    
+    console.log('updateHandHighlighting - Input:', { 
+        naturalTilesToHighlight, 
+        usedJokersCount,
+        tilesToHighlightCopy,
+        jokersToHighlight 
+    });
 
-    // 2. Highlight natural tiles
-    // Iterate through displayed tiles. If a tile matches one in tilesToHighlightCopy, highlight it and remove from copy.
+    // 2. First pass: try to match exact tile codes from data-code attribute
     for (const tileEl of displayedTileElements) {
-        if (tileEl.dataset.code.startsWith('j')) continue; // Skip jokers for now
-
-        const indexInCopyToHighlight = tilesToHighlightCopy.indexOf(tileEl.dataset.code);
+        if (!tileEl.dataset.code) continue;
+        
+        const tileCode = tileEl.dataset.code.toLowerCase();
+        const indexInCopyToHighlight = tilesToHighlightCopy.findIndex(t => 
+            t && t.toString().toLowerCase() === tileCode
+        );
+        
         if (indexInCopyToHighlight !== -1) {
             tileEl.classList.add('tile-highlighted');
-            tilesToHighlightCopy.splice(indexInCopyToHighlight, 1); // Remove highlighted tile from copy
+            tilesToHighlightCopy.splice(indexInCopyToHighlight, 1);
+            console.log('Highlighted tile (exact match):', tileCode);
         }
     }
 
-    // 3. Highlight jokers
-    // Iterate through displayed joker tiles and highlight the required number.
-    for (const tileEl of displayedTileElements) {
-        if (jokersToHighlight === 0) break; // All required jokers highlighted
-        if (tileEl.dataset.code.startsWith('j')) {
-            tileEl.classList.add('tile-highlighted');
-            jokersToHighlight--;
+    // 3. Second pass: try to match by value + suit for remaining tiles
+    if (tilesToHighlightCopy.length > 0) {
+        for (const tileEl of displayedTileElements) {
+            if (tilesToHighlightCopy.length === 0) break;
+            if (tileEl.classList.contains('tile-highlighted')) continue;
+            
+            const suit = (tileEl.dataset.suit || '').toLowerCase();
+            const value = (tileEl.dataset.value || '').toLowerCase();
+            
+            // Skip jokers in this pass (they're handled separately)
+            if (suit === 'joker') continue;
+            
+            // Try different formats to match the tile
+            let tileCode = '';
+            if (['bam', 'crack', 'dot'].includes(suit)) {
+                tileCode = value + suit[0]; // e.g., '1b', '5c', '9d'
+            } else if (suit === 'wind' || suit === 'dragon' || suit === 'flower') {
+                tileCode = value; // e.g., 'e', 's', 'rd', 'gd', 'f'
+            }
+            
+            const indexInCopyToHighlight = tilesToHighlightCopy.findIndex(t => 
+                t && t.toString().toLowerCase() === tileCode
+            );
+            
+            if (indexInCopyToHighlight !== -1) {
+                tileEl.classList.add('tile-highlighted');
+                tilesToHighlightCopy.splice(indexInCopyToHighlight, 1);
+                console.log('Highlighted tile (value+suit match):', tileCode);
+            }
         }
+    }
+
+    // 4. Highlight jokers
+    if (jokersToHighlight > 0) {
+        for (const tileEl of displayedTileElements) {
+            if (jokersToHighlight === 0) break;
+            if ((tileEl.dataset.suit || '').toLowerCase() === 'joker' && 
+                !tileEl.classList.contains('tile-highlighted')) {
+                tileEl.classList.add('tile-highlighted');
+                jokersToHighlight--;
+                console.log('Highlighted joker');
+            }
+        }
+    }
+    
+    if (tilesToHighlightCopy.length > 0) {
+        console.warn('Could not find the following tiles to highlight:', tilesToHighlightCopy);
     }
 }
 
@@ -720,6 +1123,8 @@ let currentHand = [];
 const handDisplay = document.getElementById('handDisplay');
 const resultDisplay = document.getElementById('resultDisplay');
 
+
+
 document.getElementById('generateBtn').onclick = function() {
     currentHand = generateRandomHand();
     renderHand(currentHand, handDisplay);
@@ -750,7 +1155,10 @@ document.getElementById('analyzeBtn').onclick = function() {
             row.topTierMatchResults = templateAnalysis.topTierMatchResults || []; // Ensure it's an array
             row.dataset.currentVariationIndex = -1; // Initialize for cycling through variations
 
-            const mainText = `${templateAnalysis.templateName} tiles=${templateAnalysis.summaryMatchedTiles} vars=${templateAnalysis.summaryVariationCount} totvars=${templateAnalysis.summaryTotalVariations}`;
+            // Get the joker comparison count from the best match (first in topTierMatchResults)
+            const jokerComparisons = templateAnalysis.topTierMatchResults?.[0]?.jokerComparisons ?? 0;
+            
+            const mainText = `${templateAnalysis.templateName} tiles=${templateAnalysis.summaryMatchedTiles} vars=${templateAnalysis.summaryVariationCount} totvars=${templateAnalysis.summaryTotalVariations} jcheck=${jokerComparisons}`;
             
             const variationDisplaySpan = document.createElement('span');
             variationDisplaySpan.className = 'variation-display';
@@ -796,7 +1204,17 @@ function handleSummaryRowClick(event) {
     clickedRow.dataset.currentVariationIndex = currentIndex;
 
     const currentMatch = topMatches[currentIndex];
-    updateHandHighlighting(currentMatch.matchedTiles, currentMatch.usedJokers);
+    
+    // Extract tile codes from matchedTiles array (which contains objects)
+    const matchedTileCodes = currentMatch.matchedTiles.map(tileObj => {
+        // If it's already a string (tile code), return it as is
+        if (typeof tileObj === 'string') return tileObj;
+        // Otherwise, extract the tile code from the object
+        return tileObj.handTile || tileObj.value || tileObj.tile;
+    });
+    
+    console.log('Highlighting tiles:', matchedTileCodes, 'with jokers:', currentMatch.usedJokers);
+    updateHandHighlighting(matchedTileCodes, currentMatch.usedJokers || 0);
 
     const variationDisplay = clickedRow.querySelector('.variation-display');
     if (variationDisplay) {

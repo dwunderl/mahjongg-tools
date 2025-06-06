@@ -1,0 +1,26 @@
+# Ignore test files
+tile-dealer/hand-analyzer-test.html
+
+# Ignore Vite cache and build directories
+node_modules/
+.vite/
+dist/
+
+# Ignore editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignore local environment files
+.env.local
+.env.*.local
