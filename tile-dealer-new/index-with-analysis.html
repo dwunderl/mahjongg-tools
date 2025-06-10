@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg Tile Dealer with Analysis</title>
+    <!-- Copy all styles from the working index.html -->
+    <style>
+        /* DEBUG - Very obvious change */
+        #dealt-hand-container .tile::before {
+            font-size: 16px !important;
+            background-color: yellow !important;
+            border: 2px solid red !important;
+            font-weight: bold !important;
+            color: #000 !important;
+            text-shadow: 0 0 1px white;
+            padding: 1px 2px;
+            margin: 0;
+            line-height: 1;
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            white-space: nowrap;
+            overflow: visible;
+        }
+    </style>
+    <link rel="stylesheet" href="css/mahjongg-styles.css">
+    <link rel="stylesheet" href="css/tiles.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    
+    <!-- Add analysis panel styles -->
+    <style>
+        .analysis-panel {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-section {
+            margin-bottom: 20px;
+        }
+        
+        .analysis-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .tile-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin: 5px 0;
+        }
+        
+        .analysis-tile {
+            width: 30px !important;
+            height: 45px !important;
+            font-size: 0.9em !important;
+            margin: 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">← Back to Mahjongg Tools</a>
+    <div class="container">
+        <h1>Mahjongg Tile Dealer with Analysis</h1>
+        
+        <!-- Original controls -->
+        <div class="controls">
+            <button id="deal-13-btn" class="btn">Deal 13 Tiles</button>
+            <button id="deal-14-btn" class="btn">Deal 14 Tiles</button>
+            <button id="add-tile-btn" class="btn">Add Tile</button>
+            <button id="sort-hand-btn" class="btn">Sort Hand</button>
+            <button id="analyze-btn" class="btn">Analyze Hand</button>
+            <div class="tile-count">Tiles remaining: <span id="tile-count">144</span></div>
+        </div>
+        
+        <!-- Hand container -->
+        <div id="dealt-hand-container">
+            <div id="tiles-row" class="tiles-row"></div>
+        </div>
+        
+        <!-- Analysis panel -->
+        <div id="analysis-panel" class="analysis-panel" style="display: none;">
+            <h2>Hand Analysis</h2>
+            <div id="analysis-results">
+                <p>Deal a hand and click "Analyze Hand" to see the analysis.</p>
+            </div>
+        </div>
+        
+        <!-- Debug output -->
+        <div id="debug-messages" class="debug-console"></div>
+    </div>
+    
+    <!-- Load the original script -->
+    <script src="js/simple-dealer.js"></script>
+    
+    <!-- Add our analysis functionality -->
+    <script>
+        // Wait for the original script to initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a moment to ensure the original script has initialized
+            setTimeout(function() {
+                // Get references to the original functions we need to extend
+                const originalDealHand = window.dealHand;
+                const originalResetDeck = window.resetDeck;
+                
+                // Add analyze button click handler
+                const analyzeBtn = document.getElementById('analyze-btn');
+                if (analyzeBtn) {
+                    analyzeBtn.addEventListener('click', analyzeCurrentHand);
+                    debugLog('Added click handler to Analyze button');
+                } else {
+                    debugLog('ERROR: Could not find Analyze button');
+                }
+                
+                // Function to analyze the current hand
+                function analyzeCurrentHand() {
+                    try {
+                        debugLog('Starting hand analysis...');
+                        const handContainer = document.getElementById('tiles-row');
+                        if (!handContainer) {
+                            const errorMsg = 'ERROR: Could not find tiles row container';
+                            debugLog(errorMsg);
+                            document.getElementById('analysis-results').innerHTML = `<p class="error">${errorMsg}</p>`;
+                            return;
+                        }
+                        
+                        const tiles = Array.from(handContainer.children);
+                        debugLog(`Found ${tiles.length} tiles in the hand`);
+                        
+                        if (tiles.length === 0) {
+                            const msg = 'No tiles in hand to analyze.';
+                            debugLog(msg);
+                            document.getElementById('analysis-results').innerHTML = `<p>${msg}</p>`;
+                            return;
+                        }
+                    
+                        // Show the analysis panel
+                        document.getElementById('analysis-panel').style.display = 'block';
+                        
+                        // Group tiles by type and value
+                        const groups = {};
+                    tiles.forEach(tile => {
+                        const suit = tile.getAttribute('data-suit');
+                        const value = tile.getAttribute('data-value') || '';
+                        const key = suit + value;
+                        
+                        if (!groups[key]) {
+                            groups[key] = {
+                                count: 0,
+                                suit: suit,
+                                value: value,
+                                tile: tile.outerHTML
+                            };
+                        }
+                        groups[key].count++;
+                    });
+                    
+                    // Find combinations
+                    const pairs = [];
+                    const pungs = [];
+                    const kongs = [];
+                    const singles = [];
+                    
+                    Object.values(groups).forEach(tile => {
+                        if (tile.count >= 4) kongs.push(tile);
+                        else if (tile.count === 3) pungs.push(tile);
+                        else if (tile.count === 2) pairs.push(tile);
+                        else singles.push(tile);
+                    });
+                    
+                    // Generate HTML for analysis results
+                    let html = `
+                        <div class="analysis-section">
+                            <h3>Hand Summary</h3>
+                            <p>Total Tiles: ${tiles.length}</p>
+                        </div>
+                        
+                        <div class="analysis-section">
+                            <h3>Combinations</h3>
+                            
+                            <div class="analysis-subsection">
+                                <h4>Kongs (4 of a kind): ${kongs.length}</h4>
+                                <div class="tile-group">
+                                    ${kongs.map(tile => createAnalysisTile(tile, 4)).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="analysis-subsection">
+                                <h4>Pungs (3 of a kind): ${pungs.length}</h4>
+                                <div class="tile-group">
+                                    ${pungs.map(tile => createAnalysisTile(tile, 3)).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="analysis-subsection">
+                                <h4>Pairs: ${pairs.length}</h4>
+                                <div class="tile-group">
+                                    ${pairs.map(tile => createAnalysisTile(tile, 2)).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="analysis-subsection">
+                                <h4>Singles: ${singles.length}</h4>
+                                <div class="tile-group">
+                                    ${singles.map(tile => createAnalysisTile(tile, 1)).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                        document.getElementById('analysis-results').innerHTML = html;
+                        debugLog('Hand analysis complete');
+                    } catch (error) {
+                        const errorMsg = `Error analyzing hand: ${error.message}`;
+                        console.error(errorMsg, error);
+                        debugLog(errorMsg);
+                        document.getElementById('analysis-results').innerHTML = 
+                            `<p class="error">${errorMsg}</p><pre>${error.stack}</pre>`;
+                    }
+                }
+                
+                // Helper function to create a tile for the analysis display
+                function createAnalysisTile(tile, count) {
+                    const tileEl = document.createElement('div');
+                    tileEl.className = 'tile analysis-tile';
+                    tileEl.setAttribute('data-suit', tile.suit);
+                    if (tile.value) tileEl.setAttribute('data-value', tile.value);
+                    
+                    // Clone the tile content
+                    const temp = document.createElement('div');
+                    temp.innerHTML = tile.tile;
+                    const content = temp.firstChild.innerHTML;
+                    tileEl.innerHTML = content;
+                    
+                    // Add count badge if needed
+                    if (count > 1) {
+                        const badge = document.createElement('div');
+                        badge.className = 'tile-count-badge';
+                        badge.textContent = count;
+                        tileEl.appendChild(badge);
+                    }
+                    
+                    return tileEl.outerHTML;
+                }
+                
+                // Override the original dealHand to show analysis panel
+                window.dealHand = function(tileCount) {
+                    debugLog(`Dealing ${tileCount} tiles...`);
+                    try {
+                        originalDealHand(tileCount);
+                        // Small delay to ensure tiles are rendered
+                        setTimeout(analyzeCurrentHand, 100);
+                    } catch (error) {
+                        const errorMsg = `Error dealing hand: ${error.message}`;
+                        console.error(errorMsg, error);
+                        debugLog(errorMsg);
+                    }
+                };
+                
+                // Override the original resetDeck to hide analysis panel
+                const originalReset = window.resetDeck;
+                window.resetDeck = function() {
+                    originalReset();
+                    document.getElementById('analysis-panel').style.display = 'none';
+                };
+                
+                debugLog('Analysis module initialized');
+            }, 100); // Small delay to ensure original script is loaded
+        });
+    </script>
+</body>
+</html>

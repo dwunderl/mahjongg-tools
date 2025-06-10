@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg Tile Dealer with Analyzer</title>
+    
+    <!-- Include the original tile dealer styles -->
+    <link rel="stylesheet" href="css/mahjongg-styles.css">
+    <link rel="stylesheet" href="css/tiles.css">
+    <link rel="stylesheet" href="css/mobile.css">
+    
+    <style>
+        /* Layout styles */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .tile-dealer-section, .analyzer-section {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .analyzer-section {
+            flex-grow: 1;
+            background-color: #f9f9f9;
+        }
+        
+        /* Analysis panel styles */
+        .analysis-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        
+        .tile-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .tile {
+            position: relative;
+            width: 40px;
+            height: 60px;
+            margin: 0;
+            transform: scale(0.8);
+            transform-origin: top left;
+        }
+        
+        .tile-count-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .debug-console {
+            font-family: monospace;
+            font-size: 12px;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .debug-console div {
+            padding: 2px 0;
+            border-bottom: 1px solid #333;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        /* Make sure the hand container is visible */
+        #tiles-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            min-height: 70px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        /* Button styles */
+        .btn {
+            background: #4a6da7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #3a5a8f;
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        /* Responsive layout */
+        @media (min-width: 768px) {
+            .app-container {
+                flex-direction: row;
+            }
+            
+            .tile-dealer-section, .analyzer-section {
+                flex: 1;
+                border-right: 1px solid #ddd;
+                border-bottom: none;
+                height: 100vh;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Tile Dealer Section -->
+        <div class="tile-dealer-section">
+            <h2>Mahjongg Tile Dealer</h2>
+            
+            <div class="controls">
+                <button id="deal-13" class="btn">Deal 13 Tiles</button>
+                <button id="deal-14" class="btn">Deal 14 Tiles</button>
+                <button id="add-tile" class="btn">Add Tile</button>
+                <button id="sort-hand" class="btn">Sort Hand</button>
+                <button id="reset-deck" class="btn">Reset Deck</button>
+            </div>
+            
+            <h3>Your Hand</h3>
+            <div id="tiles-row">
+                <!-- Tiles will be added here -->
+            </div>
+            
+            <div>
+                <h3>Deck Info</h3>
+                <p>Tiles remaining: <span id="tiles-remaining">144</span></p>
+                <p>Tiles in hand: <span id="tiles-in-hand">0</span></p>
+            </div>
+        </div>
+        
+        <!-- Analyzer Section -->
+        <div class="analyzer-section">
+            <h2>Hand Analyzer</h2>
+            
+            <div class="controls">
+                <button id="analyze-btn" class="btn">Analyze Hand</button>
+                <button id="clear-analysis" class="btn">Clear Analysis</button>
+            </div>
+            
+            <div id="analysis-panel" class="analysis-panel" style="display: none;">
+                <h3>Analysis Results</h3>
+                <div id="analysis-results">
+                    <p>Click "Analyze Hand" to analyze your current hand.</p>
+                </div>
+            </div>
+            
+            <div class="debug-section">
+                <h3>Debug Console</h3>
+                <div id="debug-messages" class="debug-console"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tile dealer script will be included inline -->
+    
+    <script>
+        // Debug logging function
+        function debugLog(...args) {
+            const timestamp = new Date().toISOString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            console.log(`[${timestamp}]`, ...args);
+            
+            const debugEl = document.getElementById('debug-messages');
+            if (debugEl) {
+                const line = document.createElement('div');
+                line.textContent = `[${timestamp}] ${message}`;
+                debugEl.appendChild(line);
+                debugEl.scrollTop = debugEl.scrollHeight;
+            }
+        }
+        
+        // Initialize the application
+        function initApp() {
+            debugLog('Initializing Mahjongg Tile Dealer with Analyzer');
+            
+            // Initialize the tile dealer
+            initTileDealer();
+            
+            // Initialize the analyzer
+            initAnalyzer();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            debugLog('Application initialized');
+        }
+        
+        // Tile deck and hand management
+        let deck = [];
+        let hand = [];
+        
+        // Initialize the tile dealer
+        function initTileDealer() {
+            debugLog('Initializing tile dealer...');
+            initDeck();
+            updateDeckInfo();
+            debugLog('Tile dealer initialized');
+        }
+        
+        // Initialize the deck of tiles
+        function initDeck() {
+            deck = [];
+            const suits = ['C', 'B', 'D'];
+            const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            
+            // Add number tiles (4 of each)
+            suits.forEach(suit => {
+                values.forEach(value => {
+                    for (let i = 0; i < 4; i++) {
+                        deck.push({ suit, value, type: 'suit' });
+                    }
+                });
+            });
+            
+            // Add honor tiles (4 of each)
+            const honors = ['E', 'S', 'W', 'N', 'RD', 'GD', 'WD'];
+            honors.forEach(honor => {
+                for (let i = 0; i < 4; i++) {
+                    deck.push({ suit: honor, value: '', type: 'honor' });
+                }
+            });
+            
+            // Add flower and season tiles (1 of each)
+            const flowers = ['F1', 'F2', 'F3', 'F4', 'S1', 'S2', 'S3', 'S4'];
+            flowers.forEach(flower => {
+                deck.push({ suit: 'FL', value: flower, type: 'flower' });
+            });
+            
+            // Shuffle the deck
+            shuffleDeck();
+        }
+        
+        // Shuffle the deck using Fisher-Yates algorithm
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+        
+        // Deal a hand of tiles
+        function dealHand(count) {
+            hand = [];
+            const handContainer = document.getElementById('tiles-row');
+            if (!handContainer) return;
+            
+            // Clear the hand container
+            handContainer.innerHTML = '';
+            
+            // Deal the tiles
+            for (let i = 0; i < count && deck.length > 0; i++) {
+                const tile = deck.pop();
+                hand.push(tile);
+                renderTile(tile, handContainer);
+                debugLog(`Dealt: ${tile.value}${tile.suit} (${deck.length} remaining)`);
+            }
+            
+            updateDeckInfo();
+        }
+        
+        // Add a single tile to the hand
+        function addTile() {
+            if (deck.length === 0) {
+                debugLog('No more tiles in the deck');
+                return;
+            }
+            
+            const handContainer = document.getElementById('tiles-row');
+            if (!handContainer) return;
+            
+            const tile = deck.pop();
+            hand.push(tile);
+            renderTile(tile, handContainer);
+            updateDeckInfo();
+            debugLog(`Added tile: ${tile.value}${tile.suit} (${deck.length} remaining)`);
+        }
+        
+        // Render a single tile
+        function renderTile(tile, container) {
+            const tileEl = document.createElement('div');
+            tileEl.className = `tile tile-${tile.suit.toLowerCase()}`;
+            tileEl.setAttribute('data-suit', tile.suit);
+            tileEl.setAttribute('data-value', tile.value);
+            
+            const tileContent = document.createElement('div');
+            tileContent.className = 'tile-content';
+            
+            if (tile.type === 'suit') {
+                tileContent.textContent = tile.value;
+                tileEl.setAttribute('title', `${tile.value}${tile.suit}`);
+            } else if (tile.type === 'honor') {
+                tileContent.textContent = tile.suit;
+                tileEl.setAttribute('title', tile.suit);
+            } else if (tile.type === 'flower') {
+                tileContent.textContent = tile.value;
+                tileEl.setAttribute('title', tile.value);
+            }
+            
+            tileEl.appendChild(tileContent);
+            container.appendChild(tileEl);
+        }
+        
+        // Sort the current hand
+        function sortHand() {
+            if (hand.length === 0) return;
+            
+            // Sort the hand array
+            hand.sort((a, b) => {
+                if (a.suit !== b.suit) {
+                    return a.suit.localeCompare(b.suit);
+                }
+                return a.value.localeCompare(b.value);
+            });
+            
+            // Re-render the hand
+            const handContainer = document.getElementById('tiles-row');
+            if (!handContainer) return;
+            
+            handContainer.innerHTML = '';
+            hand.forEach(tile => renderTile(tile, handContainer));
+            
+            debugLog('Hand sorted');
+        }
+        
+        // Reset the deck and clear the hand
+        function resetDeck() {
+            initDeck();
+            hand = [];
+            const handContainer = document.getElementById('tiles-row');
+            if (handContainer) {
+                handContainer.innerHTML = '';
+            }
+            updateDeckInfo();
+            debugLog('Deck reset');
+        }
+        
+        // Initialize the analyzer
+        function initAnalyzer() {
+            debugLog('Initializing hand analyzer...');
+            
+            // Check if we have the necessary elements
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const clearBtn = document.getElementById('clear-analysis');
+            
+            if (!analyzeBtn || !clearBtn) {
+                debugLog('Error: Could not find analyzer buttons');
+                return;
+            }
+            
+            // Set up event listeners
+            analyzeBtn.addEventListener('click', analyzeCurrentHand);
+            clearBtn.addEventListener('click', () => {
+                document.getElementById('analysis-panel').style.display = 'none';
+            });
+            
+            // Add keyboard shortcut (Ctrl+Shift+A) to analyze hand
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                    e.preventDefault();
+                    analyzeCurrentHand();
+                }
+            });
+            
+            debugLog('Hand analyzer initialized');
+        }
+        
+        // Set up event listeners for the tile dealer
+        function setupEventListeners() {
+            // Deal 13 tiles
+            const deal13Btn = document.getElementById('deal-13');
+            if (deal13Btn) {
+                deal13Btn.addEventListener('click', () => {
+                    dealHand(13);
+                    updateDeckInfo();
+                });
+            }
+            
+            // Deal 14 tiles
+            const deal14Btn = document.getElementById('deal-14');
+            if (deal14Btn) {
+                deal14Btn.addEventListener('click', () => {
+                    dealHand(14);
+                    updateDeckInfo();
+                });
+            }
+            
+            // Add tile
+            const addTileBtn = document.getElementById('add-tile');
+            if (addTileBtn) {
+                addTileBtn.addEventListener('click', () => {
+                    addTile();
+                    updateDeckInfo();
+                });
+            }
+            
+            // Sort hand
+            const sortHandBtn = document.getElementById('sort-hand');
+            if (sortHandBtn) {
+                sortHandBtn.addEventListener('click', sortHand);
+            }
+            
+            // Reset deck
+            const resetDeckBtn = document.getElementById('reset-deck');
+            if (resetDeckBtn) {
+                resetDeckBtn.addEventListener('click', () => {
+                    resetDeck();
+                    updateDeckInfo();
+                    document.getElementById('analysis-panel').style.display = 'none';
+                });
+            }
+        }
+        
+        // Update the deck information display
+        function updateDeckInfo() {
+            const tilesRemaining = document.getElementById('tiles-remaining');
+            const tilesInHand = document.getElementById('tiles-in-hand');
+            
+            if (tilesRemaining && typeof deck !== 'undefined') {
+                tilesRemaining.textContent = deck.length;
+            }
+            
+            if (tilesInHand) {
+                const handContainer = document.getElementById('tiles-row');
+                if (handContainer) {
+                    tilesInHand.textContent = handContainer.children.length;
+                }
+            }
+        }
+        
+        // Analyze the current hand
+        async function analyzeCurrentHand() {
+            try {
+                debugLog('Starting hand analysis...');
+                
+                const handContainer = document.getElementById('tiles-row');
+                if (!handContainer) {
+                    throw new Error('Could not find the hand container');
+                }
+                
+                const tiles = Array.from(handContainer.children)
+                    .filter(el => el.className && typeof el.className === 'string' && el.className.includes('tile'));
+                    
+                debugLog(`Found ${tiles.length} tiles in the hand`);
+                
+                if (tiles.length === 0) {
+                    throw new Error('No tiles in hand to analyze');
+                }
+                
+                // Group tiles by type and value
+                const groups = {};
+                tiles.forEach(tile => {
+                    const suit = tile.getAttribute('data-suit') || 'unknown';
+                    const value = tile.getAttribute('data-value') || '';
+                    const key = `${suit}-${value}`;
+                    
+                    if (!groups[key]) {
+                        groups[key] = {
+                            count: 0,
+                            suit: suit,
+                            value: value,
+                            element: tile.outerHTML
+                        };
+                    }
+                    groups[key].count++;
+                });
+                
+                // Find combinations
+                const pairs = [];
+                const pungs = [];
+                const kongs = [];
+                const singles = [];
+                
+                Object.values(groups).forEach(tile => {
+                    if (tile.count >= 4) kongs.push(tile);
+                    else if (tile.count === 3) pungs.push(tile);
+                    else if (tile.count === 2) pairs.push(tile);
+                    else singles.push(tile);
+                });
+                
+                // Generate HTML for analysis results
+                let html = `
+                    <div class="analysis-section">
+                        <h4>Hand Summary</h4>
+                        <p>Total Tiles: ${tiles.length}</p>
+                        <p>Combinations: 
+                            ${kongs.length} Kongs, 
+                            ${pungs.length} Pungs, 
+                            ${pairs.length} Pairs, 
+                            ${singles.length} Singles
+                        </p>
+                    </div>
+                `;
+                
+                // Add kongs section if any
+                if (kongs.length > 0) {
+                    html += `
+                        <div class="analysis-section">
+                            <h4>Kongs (4 of a kind)</h4>
+                            <div class="tile-group">
+                                ${kongs.map(tile => createAnalysisTile(tile, 4)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add pungs section if any
+                if (pungs.length > 0) {
+                    html += `
+                        <div class="analysis-section">
+                            <h4>Pungs (3 of a kind)</h4>
+                            <div class="tile-group">
+                                ${pungs.map(tile => createAnalysisTile(tile, 3)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add pairs section if any
+                if (pairs.length > 0) {
+                    html += `
+                        <div class="analysis-section">
+                            <h4>Pairs</h4>
+                            <div class="tile-group">
+                                ${pairs.map(tile => createAnalysisTile(tile, 2)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add singles section if any
+                if (singles.length > 0) {
+                    html += `
+                        <div class="analysis-section">
+                            <h4>Singles</h4>
+                            <div class="tile-group">
+                                ${singles.map(tile => createAnalysisTile(tile, 1)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Update the UI
+                const resultsEl = document.getElementById('analysis-results');
+                if (resultsEl) {
+                    resultsEl.innerHTML = html;
+                }
+                
+                // Show the analysis panel
+                const panelEl = document.getElementById('analysis-panel');
+                if (panelEl) {
+                    panelEl.style.display = 'block';
+                }
+                
+                debugLog('Hand analysis complete');
+                
+            } catch (error) {
+                const errorMsg = `Error analyzing hand: ${error.message}`;
+                console.error(errorMsg, error);
+                debugLog(errorMsg);
+                
+                const resultsEl = document.getElementById('analysis-results');
+                if (resultsEl) {
+                    resultsEl.innerHTML = `
+                        <div class="error">
+                            <p><strong>Error:</strong> ${error.message}</p>
+                            <pre>${error.stack || 'No stack trace available'}</pre>
+                        </div>
+                    `;
+                }
+                
+                // Show the analysis panel even on error
+                const panelEl = document.getElementById('analysis-panel');
+                if (panelEl) {
+                    panelEl.style.display = 'block';
+                }
+            }
+        }
+        
+        // Helper function to create a tile for the analysis display
+        function createAnalysisTile(tile, count) {
+            const tileEl = document.createElement('div');
+            tileEl.className = 'tile';
+            tileEl.setAttribute('data-suit', tile.suit);
+            if (tile.value) tileEl.setAttribute('data-value', tile.value);
+            
+            // Create a temporary element to parse the HTML
+            const temp = document.createElement('div');
+            temp.innerHTML = tile.element;
+            
+            // Copy the tile content
+            const originalTile = temp.firstElementChild;
+            if (originalTile) {
+                // Copy all child nodes
+                while (originalTile.firstChild) {
+                    tileEl.appendChild(originalTile.firstChild);
+                }
+                
+                // Copy all attributes
+                Array.from(originalTile.attributes).forEach(attr => {
+                    tileEl.setAttribute(attr.name, attr.value);
+                });
+                
+                // Add count badge if needed
+                if (count > 1) {
+                    const badge = document.createElement('div');
+                    badge.className = 'tile-count-badge';
+                    badge.textContent = count;
+                    tileEl.appendChild(badge);
+                }
+                
+                return tileEl.outerHTML;
+            }
+            
+            return '';
+        }
+        
+        // Initialize the app when the DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html>

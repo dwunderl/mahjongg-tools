@@ -1,0 +1,374 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f5f5f5;
+    padding-top: 100px; /* Make room for debug box */
+}
+
+header, main, footer {
+    width: 100%;
+    max-width: 900px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    text-align: center;
+    color: #006633; /* Mahjongg green */
+    margin-top: 0;
+}
+
+#controls {
+    text-align: center;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+#controls button {
+    padding: 10px 15px;
+    font-size: 0.9em;
+    margin: 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    #controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    #controls button {
+        width: 80%;
+        max-width: 250px;
+    }
+}
+
+#controls button:hover {
+    background-color: #0056b3;
+}
+
+#hand-display-area h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#dealt-hand-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow tiles to wrap to next line */
+    justify-content: center; /* Center tiles in the container */
+    align-items: flex-start;
+    min-height: 100px; /* Placeholder height */
+    padding: 10px;
+    border: 1px dashed #ccc;
+    border-radius: 5px;
+    background-color: #e9f5e9; /* Light green background */
+}
+
+.tile {
+    width: 50px;  /* Adjust for desired tile size */
+    height: 70px; /* Adjust for desired tile size */
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #fdf5e6; /* Beige tile color */
+    margin: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em; /* Increased font size for Unicode chars */
+    font-weight: bold;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    user-select: none; /* Prevent text selection on tiles */
+}
+
+.tile-rank,
+.tile-suit-suffix {
+    display: block; /* Ensure they take full width to center text */
+    text-align: center; /* Center the text within each span */
+    width: 100%;
+}
+
+.tile-rank {
+    font-size: 1.2em; /* Slightly larger for the number */
+    margin-bottom: 2px; /* Small space between rank and suit */
+}
+
+.tile-suit-suffix {
+    font-size: 0.7em; /* Smaller for the suffix */
+}
+
+/* Placeholder for specific tile styles - we will add these later */
+.tile-crack { color: #c00; /* Darker Red for Craks */ }
+.tile-bam { color: #060;  /* Darker Green for Bams */ }
+.tile-dot { color: #000;  /* Black for Dots */ }
+.tile-wind { 
+    color: #000; /* Black text */ 
+    font-weight: bold; 
+    font-size: 1.8em; /* Large capital letter */
+}
+.tile-dragon-red { 
+    color: #fff; /* White text 'Red' */
+    background-color: #c00; /* Red background */
+    border: 1px solid #000; /* Black border */
+    font-size: 0.8em; /* Corrected for the word 'Red' */
+    font-weight: bold; /* Make text bold to stand out */
+}
+.tile-dragon-green { 
+    color: #fff; /* White text 'Green' */
+    background-color: #060; /* Green background */
+    border: 1px solid #000; /* Black border */
+    font-size: 0.8em; /* Corrected for the word 'Green' */
+    font-weight: bold; /* Make text bold to stand out */
+}
+.tile-dragon-white { 
+    color: #000; /* Black text 'Soap' */ 
+    background-color: #fff; /* White background */ 
+    border: 1px solid #000; /* Black border */
+    font-size: 0.9em; /* Corrected for the word 'Soap' */
+    font-weight: bold; /* Make text bold to stand out */
+}
+.tile-flower { color: #ff69b4; font-size: 1.8em; /* Larger for emoji */}
+.tile-joker { 
+    color: #800080; /* Purple */ 
+    font-style: normal; /* Remove italic if 'Joker' text is clear enough */
+    font-size: 0.8em; /* Smaller for the word 'Joker' */
+    font-family: 'Georgia', serif; /* A slightly more distinct font for Joker */
+}
+
+footer {
+    text-align: center;
+    font-size: 0.9em;
+    color: #777;
+    margin-top: 30px;
+}
+
+/* Analysis results */
+#analysis-results {
+    margin-top: 25px;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+#analysis-results h3 {
+    margin: 0;
+    padding: 15px 20px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    color: #333;
+    font-size: 1.2em;
+}
+
+#analysis-results-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.template-match {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.template-match:last-child {
+    border-bottom: none;
+}
+
+.template-match:hover {
+    background-color: #f9f9f9;
+}
+
+/* Analysis Results */
+.hand-display-area {
+    margin: 25px 0;
+    padding: 0 15px;
+    max-width: 1200px; /* Prevent content from getting too wide */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.analysis-results {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.analysis-results h3 {
+    margin-top: 0;
+    color: #006633;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+#analysis-results-content {
+    font-size: 0.95em;
+}
+
+.result-item {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #007bff;
+    border-radius: 0 4px 4px 0;
+}
+
+.result-item strong {
+    color: #343a40;
+}
+
+.no-results {
+    color: #6c757d;
+    font-style: italic;
+    padding: 10px;
+    text-align: center;
+}
+
+.template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 10px 0;
+    padding: 0;
+    cursor: pointer;
+    color: #1a237e;
+}
+
+.template-header:hover {
+    text-decoration: underline;
+}
+
+.match-percentage {
+    font-weight: bold;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    border: 1px solid;
+}
+
+.match-high {
+    color: #1b5e20;
+    background-color: #e8f5e9;
+    border-color: #a5d6a7;
+}
+
+.match-medium {
+    color: #f57f17;
+    background-color: #fff8e1;
+    border-color: #ffe082;
+}
+
+.match-low {
+    color: #c62828;
+    background-color: #ffebee;
+    border-color: #ef9a9a;
+}
+
+.match-details {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.95em;
+}
+
+.match-details p {
+    margin: 5px 0;
+}
+
+.matched-tiles {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+.matched-tile {
+    display: inline-block;
+    margin: 3px;
+    padding: 3px 8px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    border: 1px solid #bbdefb;
+    font-family: monospace;
+    font-size: 1.1em;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.score {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #f3e5f5;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #6a1b9a;
+    font-size: 0.9em;
+}
+
+/* Tile highlighting */
+.tile.highlighted {
+    position: relative;
+    z-index: 10;
+    transform: translateY(-10px) scale(1.1);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.tile.highlighted::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border: 3px solid #ffc107;
+    border-radius: 8px;
+    z-index: -1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.7; }
+}
+
+#analyze-hand-btn:hover {
+    background-color: #218838;
+}
+#analyze-hand-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Make the reset button stand out */
+#reset-deck-btn {
+    background-color: #dc3545;
+}
+
+#reset-deck-btn:hover {
+    background-color: #c82333;
+}
+
