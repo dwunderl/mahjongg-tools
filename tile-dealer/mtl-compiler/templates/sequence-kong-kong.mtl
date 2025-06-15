@@ -1,0 +1,25 @@
+// Sequence of 5 and 2 Kongs
+category = "Consecutive Run"
+catid = 7
+image = "<green>112345 <red>1111 <black>1111"
+name = "Sequence Kong Kong"
+description = "Sequence of 5, 2 Kongs matching first number"
+
+Variations:
+// MTL code defines the set
+// Define suits
+suits = (b, c, d)
+
+foreach(s1 in suits):
+    s2, s3 = complement(s1, suits)  // s2 and s3 are alternates to primary s1
+    
+    // Numbered tiles
+    foreach(n in 1..5):
+        pair(n, s1)                   // sequence of 5 start
+        single(n+1, s1)            // 2nd of 5
+        single(n+2, s1)           // 3rd of 5
+        single(n+3, s1)           // 4th of 5
+        single(n+4, s1)           // 5th of 5
+        kong(n, s2)                // Kong in an alternate suit
+        kong(n, s3)                // Kong in other alternate suit
+    End:

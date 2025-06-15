@@ -1,0 +1,24 @@
+// p3 k6 p6 k9 - s1 s1 s2 s3
+category = "369"
+catid = 1b
+image = "<green>333 6666 <red>666 <black>9999"
+name = "p3 k6 p6 k9 in 3 suits"
+description = "3669 - s1 s1 s2 s3"
+
+Variations:
+// MTL code defines the set
+// Define suits
+suits = (b, c, d)
+
+// For each permutation of suits
+foreach (p in permutations(suits)):
+    s1 = p[0]
+    s2 = p[1]
+    s3 = p[2]
+    
+    // Create the variation
+    pung(3, s1)     // Pung of 3s in first suit
+    kong(6, s1)     // Kong of 6s in first suit
+    pung(6, s2)     // Pung of 6s in second suit
+    kong(9, s3)     // Kong of 9s in third suit
+End:

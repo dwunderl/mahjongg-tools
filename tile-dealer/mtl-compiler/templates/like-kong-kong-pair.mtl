@@ -1,0 +1,24 @@
+// Kong Kong Pair with Flowers and Dragons
+category = "ANY LIKE NUMBERS"
+catid = 1
+image = "<black>FF <green>1111 D <red>1111 D <black>11"
+name = "Like Kong Kong Pair"
+description = "Like kongs and Pair in different suits with matching dragons and flower pair"
+
+Variations:
+// MTL code defines the set
+// Define suits
+suits = (b, c, d)
+
+foreach(s1 in suits):
+    s2, s3 = complement(s1, suits)  // s2 and s3 are alternates to primary s1
+    
+    // Numbered tiles
+    foreach(n in 1..9):
+        pair(F)             // Flowers
+        kong(n, s2)         // Kong in an alternate suit
+        single(D, s2)       // Matching dragon
+        kong(n, s3)         // Kong in other alternate suit
+        single(D, s3)       // Matching dragon
+        pair(n, s1)         // Pair in primary suit
+    End:
