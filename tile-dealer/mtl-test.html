@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTL Template Tester</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --primary-dark: #357abd;
+            --success-color: #2e7d32;
+            --success-light: #c8e6c9;
+            --warning-color: #f57c00;
+            --error-color: #d32f2f;
+            --text-color: #333;
+            --text-light: #6c757d;
+            --border-color: #e0e0e0;
+            --bg-light: #f8f9fa;
+            --bg-lighter: #f5f7fa;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --transition: all 0.2s ease-in-out;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #f5f7fa;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 20px 0;
+            min-height: 80px;
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .analysis-summary {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .analysis-summary h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        .match-stats {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            min-width: 100px;
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .template-description {
+            font-size: 1.1em;
+            line-height: 1.5;
+            color: #34495e;
+            margin: 15px 0 0;
+        }
+        
+        .analysis-details {
+            margin: 25px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .hand-preview {
+            margin-bottom: 20px;
+        }
+        
+        .tiles-container {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 5px;
+            margin: 10px 0;
+            overflow-x: auto;
+            padding: 10px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .tile-preview {
+            padding: 5px 10px;
+            background: #f1f3f5;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .variations-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .variations-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .variations-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .actions {
+            margin-top: 25px;
+            text-align: center;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .error-message {
+            background-color: #fde8e8;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f56565;
+            margin: 15px 0;
+        }
+        
+        .error-message h3 {
+            margin-top: 0;
+            color: #c53030;
+        }
+        
+        .tile {
+            flex: 0 0 auto;
+            width: 60px;
+            height: 84px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            background: white;
+            margin: 4px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        
+        .tile > * {
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Tile type specific styles */
+        .tile-bam { 
+            --tile-color: #4caf50;  /* Green for Bam */
+            background: linear-gradient(145deg, #e8f5e9, #c8e6c9);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        .tile-crack { 
+            --tile-color: #f44336;  /* Red for Crack */
+            background: linear-gradient(145deg, #ffebee, #ffcdd2);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        .tile-dot { 
+            --tile-color: #000000;  /* Black for Dot (text will be white) */
+            background: linear-gradient(145deg, #f5f5f5, #e0e0e0);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        .tile-flower { 
+            --tile-color: #9c27b0;  /* Lavender for Flowers */
+            background: linear-gradient(145deg, #f3e5f5, #e1bee7);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        .tile-dragon { 
+            --tile-color: #2196f3;  /* Blue for Dragons */
+            background: linear-gradient(145deg, #e3f2fd, #bbdefb);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+            font-weight: bold;
+        }
+        .tile-wind {
+            --tile-color: #4dd0e1;  /* Light blue for Winds */
+            background: linear-gradient(145deg, #e0f7fa, #b2ebf2);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        .tile-joker { 
+            --tile-color: #ffeb3b;  /* Yellow for Jokers */
+            background: linear-gradient(145deg, #fffde7, #fff9c4);
+            border-left: 4px solid #ffc107;
+            color: #ff8f00;
+            font-weight: bold;
+        }
+        
+        .tile-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            line-height: 1;
+            text-align: center;
+            width: 100%;
+            color: #333;
+        }
+        
+        .tile-suit {
+            font-size: 1em;
+            margin-top: 2px;
+            text-align: center;
+            width: 100%;
+            color: #555;
+            text-transform: uppercase;
+            font-weight: normal;
+        }
+        
+        .tile:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        
+        .tile:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        
+        .tile.selected {
+            transform: translateY(-1px) scale(0.98);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px rgba(74, 144, 226, 0.3);
+            z-index: 5;
+        }
+        
+        .tile.matched {
+            background: linear-gradient(145deg, #e8f5e9, #c8e6c9);
+            border-color: #81c784;
+            box-shadow: 0 0 0 2px #81c784, 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .tile.matched::after {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 16px;
+            height: 16px;
+            background: #2e7d32;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            line-height: 1;
+            padding-bottom: 1px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            z-index: 3;
+        }
+        
+        /* Tile type colors */
+        .bam { 
+            --tile-color: #4caf50;  /* Green for Bam */
+            --tile-light: #c8e6c9;
+            --tile-dark: #2e7d32;
+            background: linear-gradient(145deg, #e8f5e9, #c8e6c9);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        
+        .bam .tile-suit {
+            color: var(--tile-color);
+        }
+        
+        .crack { 
+            --tile-color: #f44336;  /* Red for Crack */
+            --tile-light: #ffcdd2;
+            --tile-dark: #d32f2f;
+            background: linear-gradient(145deg, #ffebee, #ffcdd2);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        
+        .crack .tile-suit {
+            color: var(--tile-color);
+        }
+        
+        .dot { 
+            --tile-color: #000000;  /* Black for Dot */
+            --tile-light: #e0e0e0;
+            --tile-dark: #616161;
+            background: linear-gradient(145deg, #f5f5f5, #e0e0e0);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        
+        .dot .tile-suit {
+            color: var(--tile-color);
+        }
+        
+        .flower { 
+            --tile-color: #9c27b0;  /* Lavender for Flowers */
+            --tile-light: #e1bee7;
+            --tile-dark: #7b1fa2;
+            background: linear-gradient(145deg, #f3e5f5, #e1bee7);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        
+        .flower .tile-value {
+            font-size: 1.3em;
+        }
+        
+        .dragon { 
+            font-weight: bold;
+            font-size: 1.3em;
+            /* Default color will be overridden by suit classes */
+        }
+        
+        /* Dragon inherits colors from its suit class (bam, crack, dot) */
+        .dragon .tile-value {
+            font-weight: bold;
+            font-size: 1.5em;
+            margin-top: 10px;
+        }
+        
+        .wind {
+            --tile-color: #4dd0e1;  /* Light blue for Winds */
+            --tile-light: #b2ebf2;
+            --tile-dark: #00acc1;
+            background: linear-gradient(145deg, #e0f7fa, #b2ebf2);
+            border-left: 4px solid var(--tile-color);
+            color: var(--tile-color);
+        }
+        
+        .joker {
+            --tile-color: #ffeb3b;  /* Yellow for Jokers */
+            --tile-light: #fff9c4;
+            --tile-dark: #fdd835;
+            background: linear-gradient(145deg, #fffde7, #fff9c4);
+            border-left: 4px solid #ffc107;
+            color: #ff8f00;
+            font-weight: bold;
+        }
+        
+        /* Dragon specific colors */
+        .rd { 
+            --tile-color: #f44336;  /* Red dragon */
+            color: var(--tile-color);
+        }
+        
+        .gd { 
+            --tile-color: #4caf50;  /* Green dragon */
+            color: var(--tile-color);
+        }
+        
+        .wd { 
+            --tile-color: #1565c0;
+            color: var(--tile-color);
+        }  /* White dragon */
+        
+        .joker { 
+            --tile-color: #616161;
+            background: repeating-linear-gradient(
+                45deg,
+                #f5f5f5,
+                #f5f5f5 8px,
+                #e0e0e0 8px,
+                #e0e0e0 16px
+            );
+            border: 2px dashed #9e9e9e;
+            color: var(--tile-color);
+            font-style: italic;
+        }
+        
+        .controls {
+            margin: 25px 0;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        select, button {
+            padding: 10px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 500;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        button .btn-icon {
+            font-size: 1.1em;
+            line-height: 1;
+        }
+        
+        button .btn-text {
+            position: relative;
+            top: 1px;
+        }
+        
+        /* Secondary button style */
+        button.secondary {
+            background-color: #f0f4f8;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        button.secondary:hover {
+            background-color: #e3e9f0;
+            border-color: #cbd5e0;
+        }
+        
+        /* Success button */
+        button.success {
+            background-color: var(--success-color);
+        }
+        
+        button.success:hover {
+            background-color: #1b5e20;
+        }
+        
+        .results {
+            margin-top: 25px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        #summaryContainer {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            background-color: #f0f7ff;
+            border-radius: 6px;
+            border-left: 4px solid #4a90e2;
+        }
+        
+        #detailsContainer {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+        }
+        
+        .template-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #6c757d;
+        }
+        
+        .template-info h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .template-desc {
+            color: var(--text-light);
+            margin: 12px 0 0;
+            line-height: 1.5;
+        }
+        
+        .empty-state {
+            color: var(--text-light);
+            font-style: italic;
+            padding: 30px 20px;
+            text-align: center;
+            width: 100%;
+            background-color: white;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: var(--transition);
+        }
+        
+        .hand.empty .empty-state {
+            display: block;
+        }
+        
+        .hand:not(.empty) .empty-state {
+            display: none;
+        }
+        
+        /* Card styles */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Section styles */
+        section {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        section h2 {
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .hand {
+                justify-content: center;
+            }
+            
+            .tile {
+                width: 45px;
+                height: 65px;
+                font-size: 14px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            select, button {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mahjong Hand Analyzer</h1>
+        <p>Test the MTL (Mahjong Template Language) parser and matcher</p>
+    </header>
+    
+    <main>
+        <section class="template-info">
+            <h2>Template</h2>
+            <select id="templateSelect">
+                <option value="like_kong_kong">Like Kong Kong Pair</option>
+            </select>
+            
+            <div id="templateInfo">
+                <h3 id="templateName">Template Name</h3>
+                <p id="templateDesc" class="template-desc">Template description will appear here</p>
+            </div>
+        </section>
+        
+        <section class="hand-section">
+            <h2>Hand</h2>
+            <div class="hand" id="handDisplay">
+                <!-- Tiles will be added here by JavaScript -->
+                <div class="empty-state">No hand dealt yet. Click "Deal New Hand" to start.</div>
+            </div>
+            
+            <div class="controls">
+                <button id="dealBtn">
+                    <span class="btn-icon">🎲</span>
+                    <span class="btn-text">Deal New Hand</span>
+                </button>
+                <button id="analyzeBtn">
+                    <span class="btn-icon">🔍</span>
+                    <span class="btn-text">Analyze Hand</span>
+                </button>
+            </div>
+        </section>
+        
+        <section class="results">
+            <h2>Analysis Results</h2>
+            <div id="summaryContainer" class="empty-state">
+                No analysis available. Deal a hand and click "Analyze Hand".
+            </div>
+            <div id="detailsContainer"></div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Mahjong Tools &copy; 2025 | MTL Parser Test</p>
+    </footer>
+
+    <!-- MTL Core Scripts -->
+    <script>
+    // Initialize MTL namespace if it doesn't exist
+    window.MTL = window.MTL || {};
+    </script>
+    <!-- Load MTL modules in dependency order -->
+    <script src="js/mtl/parser.js"></script>
+    <script src="js/mtl/evaluator.js"></script>
+    <script src="js/mtl/matcher.js"></script>
+    <script src="js/mtl/utils.js"></script>
+    <script>
+    // Verify MTL modules are loaded
+    console.log('MTL modules loaded:', {
+        Parser: typeof MTL_Parser,
+        Evaluator: typeof MTL_Evaluator,
+        Matcher: typeof MTL_Matcher,
+        Utils: typeof MTL_Utils,
+        MTL: window.MTL
+    });
+    </script>
+    <script>
+    // Main Application Script
+    (function() {
+        // Global variables
+        let currentTemplate = null;
+        let currentHand = [];
+        let templateSelect, templateName, templateDesc, handDisplay, dealBtn, analyzeBtn; 
+        
+        // Templates will be defined later after the DOM is loaded
+        let templates = {};
+        
+        // Initialize everything when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('MTL loaded:', { MTL, MTL_Evaluator, MTL_Utils });
+            initializeElements();
+            initializeTemplates();
+            setupEventListeners();
+            
+            // Don't load a template by default, wait for user selection
+            console.log('Application initialized. Please select a template from the dropdown.');
+        });
+        
+        // Initialize DOM elements
+        function initializeElements() {
+            templateSelect = document.getElementById('templateSelect');
+            templateName = document.getElementById('templateName');
+            templateDesc = document.getElementById('templateDesc');
+            handDisplay = document.getElementById('handDisplay');
+            dealBtn = document.getElementById('dealBtn');
+            analyzeBtn = document.getElementById('analyzeBtn');
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            if (templateSelect) {
+                templateSelect.addEventListener('change', loadTemplate);
+            }
+            
+            if (dealBtn) {
+                dealBtn.addEventListener('click', dealNewHand);
+            }
+            
+            if (analyzeBtn) {
+                const summaryEl = document.getElementById('summaryContainer');
+                const detailsEl = document.getElementById('detailsContainer');
+                analyzeBtn.addEventListener('click', () => analyzeHand(summaryEl, detailsEl));
+            }
+        }
+        
+        // Function to load the selected template
+        function loadTemplate() {
+            if (!templateSelect) {
+                console.error('Template select element not found');
+                return;
+            }
+            
+            const templateId = templateSelect.value;
+            
+            // Don't proceed if no template is selected
+            if (!templateId) {
+                console.log('No template selected');
+                return;
+            }
+            
+            const template = templates[templateId];
+            
+            if (!template) {
+                console.error('Template not found:', templateId);
+                return;
+            }
+            
+            console.log('Loading template:', templateId, template);
+            
+            try {
+                // Generate template variations
+                currentTemplate = {
+                    id: templateId,
+                    name: template.name,
+                    description: template.description,
+                    variations: template.generateVariations()
+                };
+                
+                console.log('Generated template variations:', currentTemplate.variations);
+                
+                if (!currentTemplate?.variations?.length) {
+                    throw new Error('No valid template variations generated');
+                }
+                
+                // Update UI with template info
+                updateTemplateInfo();
+                
+                // Clear previous hand and analysis
+                currentHand = [];
+                renderHand();
+                
+                // Generate a random hand based on the template
+                dealNewHand();
+                
+            } catch (error) {
+                handleTemplateError(error);
+            }
+        }
+        
+        // Update template information in the UI
+        function updateTemplateInfo() {
+            if (!currentTemplate) {
+                console.error('No current template to update info');
+                return;
+            }
+            
+            console.log('Updating template info:', currentTemplate);
+            
+            if (templateName) {
+                templateName.textContent = currentTemplate.name || 'Unnamed Template';
+                console.log('Set template name to:', currentTemplate.name);
+            }
+            
+            if (templateDesc) {
+                templateDesc.textContent = currentTemplate.description || 'No description available';
+                console.log('Set template description to:', currentTemplate.description);
+            }
+        }
+        
+        // Handle template loading errors
+        function handleTemplateError(error) {
+            console.error('Error loading template:', error);
+            alert('Error loading template: ' + (error.message || 'Unknown error'));
+            
+            if (error.stack) {
+                console.error('Error stack:', error.stack);
+            }
+        }
+        
+        // Initialize templates in the DOM
+        function initializeTemplates() {
+            if (!templateSelect) {
+                console.error('Template select element not found');
+                return;
+            }
+            
+            // Clear existing options
+            templateSelect.innerHTML = '';
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Select a Template --';
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            templateSelect.appendChild(defaultOption);
+            
+            // Add templates to select dropdown
+            Object.entries(templates).forEach(([id, template]) => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = template.name;
+                templateSelect.appendChild(option);
+            });
+            
+            // Add change event listener to load selected template
+            templateSelect.addEventListener('change', loadTemplate);
+            
+            console.log('Templates initialized:', Object.keys(templates).length);
+        }
+        
+        // Function to generate a random tile
+        function generateRandomTile(type = 'suit') {
+            if (type === 'flower') {
+                return 'F'; // Just 'F' for flowers, no numbers
+            } else if (type === 'dragon') {
+                const dragons = ['rd', 'gd', 'wd'];
+                return dragons[Math.floor(Math.random() * dragons.length)];
+            } else if (type === 'wind') {
+                const winds = ['east', 'south', 'west', 'north'];
+                return winds[Math.floor(Math.random() * winds.length)];
+            } else if (type === 'joker') {
+                return 'J';
+            } else {
+                // Standard suited tile
+                const tileTypes = ['b', 'c', 'd'];
+                const suit = tileTypes[Math.floor(Math.random() * tileTypes.length)];
+                const value = Math.floor(Math.random() * 9) + 1; // 1-9
+                return value + suit;
+            }
+        }
+
+        // Function to generate a valid Mahjong hand (13-14 tiles)
+        function generateRandomHand() {
+            const hand = [];
+            
+            // Add 1-2 flowers (common in many variants)
+            const flowerCount = Math.random() > 0.7 ? 2 : 1;
+            for (let i = 0; i < flowerCount; i++) {
+                hand.push(generateRandomTile('flower'));
+            }
+            
+            // Add 1-2 dragons (common in many hands)
+            const dragonCount = Math.random() > 0.5 ? 2 : 1;
+            for (let i = 0; i < dragonCount; i++) {
+                hand.push(generateRandomTile('dragon'));
+            }
+            
+            // Add 1-2 winds
+            const windCount = Math.random() > 0.7 ? 2 : 1;
+            for (let i = 0; i < windCount; i++) {
+                hand.push(generateRandomTile('wind'));
+            }
+            
+            // Add 1-2 jokers (common in American Mahjongg)
+            const jokerCount = Math.random() > 0.7 ? 2 : 1;
+            for (let i = 0; i < jokerCount; i++) {
+                hand.push(generateRandomTile('joker'));
+            }
+            
+            // Add some random suited tiles to make up to 13-14 tiles
+            const remainingTiles = 14 - hand.length;
+            for (let i = 0; i < remainingTiles; i++) {
+                hand.push(generateRandomTile('suit'));
+            }
+            
+            // Ensure we have at least one valid combination (a pung or chow)
+            if (Math.random() > 0.3) { // 70% chance to add a valid combination
+                const suit = ['b', 'c', 'd'][Math.floor(Math.random() * 3)];
+                const value = Math.floor(Math.random() * 7) + 1; // 1-7 to allow for chows
+                
+                if (Math.random() > 0.5) {
+                    // Add a pung (3 of a kind)
+                    hand.push(`${value}${suit}`, `${value}${suit}`, `${value}${suit}`);
+                } else {
+                    // Add a chow (sequence of 3)
+                    hand.push(`${value}${suit}`, `${value + 1}${suit}`, `${value + 2}${suit}`);
+                }
+            }
+            
+            return hand.slice(0, 14); // Ensure we don't exceed 14 tiles
+        }
+
+        // Function to deal a new random hand
+        function dealNewHand() {
+            console.log('Dealing new hand...');
+            try {
+                // Generate a random hand
+                currentHand = generateRandomHand();
+                console.log('Generated hand:', currentHand);
+                
+                // Render the hand
+                renderHand();
+                
+                // Clear any previous analysis
+                const summaryEl = document.getElementById('summaryContainer');
+                const detailsEl = document.getElementById('detailsContainer');
+                if (summaryEl) summaryEl.innerHTML = '';
+                if (detailsEl) detailsEl.innerHTML = '';
+                
+                console.log('New hand dealt successfully');
+            } catch (error) {
+                console.error('Error dealing new hand:', error);
+            }
+        }
+        
+        function analyzeHand(summaryEl, detailsEl) {
+            console.log('Starting hand analysis...');
+            
+            // Clear previous results and reset UI
+            summaryEl.innerHTML = '';
+            detailsEl.innerHTML = '';
+            
+            if (!currentHand || currentHand.length === 0) {
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message';
+                errorMsg.textContent = 'No hand to analyze. Please deal a hand first.';
+                summaryEl.appendChild(errorMsg);
+                console.warn('No hand to analyze');
+                return;
+            }
+            
+            if (!currentTemplate) {
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message';
+                errorMsg.textContent = 'No template loaded. Please select a template first.';
+                summaryEl.appendChild(errorMsg);
+                console.warn('No template loaded');
+                return;
+            }
+            
+            console.log('Analyzing hand against template:', currentTemplate.name);
+            console.log('Current hand:', currentHand);
+            
+            try {
+                // Analyze the hand against the current template
+                const results = MTL_Matcher.matchHandToTemplate(currentHand, currentTemplate);
+                console.log('Analysis results:', results);
+                
+                const summary = document.createElement('div');
+                summary.className = 'analysis-summary';
+                
+                if (results && results.matched) {
+                    const matchPercentage = Math.round((results.matchedTilesCount / results.totalTiles) * 100);
+                    
+                    summary.innerHTML = `
+                        <h3>🎉 Template Matched!</h3>
+                        <div class="match-stats">
+                            <div class="stat">
+                                <span class="stat-value">${results.matchedTilesCount} / ${results.totalTiles}</span>
+                                <span class="stat-label">Tiles Matched</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">${matchPercentage}%</span>
+                                <span class="stat-label">Match</span>
+                            </div>
+                        </div>
+                        <h4>${currentTemplate.name}</h4>
+                        <p class="template-description">${currentTemplate.description || ''}</p>
+                    `;
+                    
+                    // Highlight matched tiles
+                    renderHand(results.matchedTiles || []);
+                } else {
+                    summary.innerHTML = `
+                        <h3>🔍 No Exact Match Found</h3>
+                        <p>Your hand doesn't match the "${currentTemplate.name}" template.</p>
+                        <p>Try these tips:</p>
+                        <ul>
+                            <li>Deal a new hand</li>
+                            <li>Select a different template</li>
+                            <li>Check the template requirements below</li>
+                        </ul>
+                    `;
+                }
+                
+                summaryEl.appendChild(summary);
+                
+                // Add more detailed analysis to details section
+                const details = document.createElement('div');
+                details.className = 'analysis-details';
+                
+                let templateDetails = '';
+                if (currentTemplate.variations && currentTemplate.variations.length > 0) {
+                    templateDetails = `
+                        <h4>Template Variations:</h4>
+                        <ul class="variations-list">
+                            ${currentTemplate.variations.slice(0, 3).map(v => 
+                                `<li>${v.name || 'Variation'}: ${v.description || 'No description'}</li>`
+                            ).join('')}
+                            ${currentTemplate.variations.length > 3 ? 
+                                `<li>...and ${currentTemplate.variations.length - 3} more variations</li>` : ''}
+                        </ul>
+                    `;
+                }
+                
+                details.innerHTML = `
+                    <div class="hand-preview">
+                        <h4>Your Hand:</h4>
+                        <div class="tiles-preview">${currentHand.map(t => 
+                            `<span class="tile-preview">${t}</span>`
+                        ).join('')}</div>
+                    </div>
+                    ${templateDetails}
+                    <div class="actions">
+                        <button id="tryAgainBtn" class="btn">Try Another Hand</button>
+                    </div>
+                `;
+                
+                // Add event listener for the try again button
+                const tryAgainBtn = details.querySelector('#tryAgainBtn');
+                if (tryAgainBtn) {
+                    tryAgainBtn.addEventListener('click', () => dealNewHand());
+                }
+                
+                detailsEl.appendChild(details);
+                
+            } catch (error) {
+                console.error('Error during analysis:', error);
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message';
+                errorMsg.innerHTML = `
+                    <h3>⚠️ Analysis Error</h3>
+                    <p>An error occurred while analyzing your hand:</p>
+                    <pre>${error.message || 'Unknown error'}</pre>
+                `;
+                summaryEl.appendChild(errorMsg);
+            }
+        }
+        
+        // Handle analysis errors
+        function handleAnalysisError(error) {
+            console.error('Error analyzing hand:', error);
+            alert('Error analyzing hand: ' + (error.message || 'Unknown error'));
+            
+            if (error.stack) {
+                console.error('Error stack:', error.stack);
+            }
+        }
+        
+        // Function to render the hand
+        function renderHand(matchedTiles = []) {
+            console.log('Rendering hand:', currentHand);
+            
+            // Clear the hand display
+            handDisplay.innerHTML = '';
+            
+            if (!currentHand || currentHand.length === 0) {
+                handDisplay.textContent = 'No hand to display';
+                return;
+            }
+            
+            // Create a set of matched tiles for quick lookup
+            const matchedSet = new Set(matchedTiles || []);
+            
+            // Create a container for the tiles
+            const tilesContainer = document.createElement('div');
+            tilesContainer.className = 'tiles-container';
+            
+            // Create and append tile elements
+            currentHand.forEach((tile, index) => {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile';
+                
+                // Add data attribute for easier selection
+                tileEl.setAttribute('data-tile', tile);
+                
+                // Parse tile type and value
+                let tileType = '';
+                let tileValue = '';
+                let tileSuit = '';
+                let displayText = tile; // Default display text
+                
+                // Handle joker tiles (J)
+                if (tile === 'J') {
+                    tileType = 'joker';
+                    displayText = 'J';
+                    tileEl.title = 'Joker';
+                }
+                // Handle dragon tiles (rd, gd, wd)
+                else if (tile === 'rd' || tile === 'gd' || tile === 'wd') {
+                    tileType = 'dragon';
+                    displayText = 'D';
+                    tileEl.title = tile === 'rd' ? 'Red Dragon (Crack)' : tile === 'gd' ? 'Green Dragon (Bam)' : 'White Dragon (Dot)';
+                    // Add specific class for each dragon type
+                    if (tile === 'rd') {
+                        tileEl.classList.add('crack');
+                    } else if (tile === 'gd') {
+                        tileEl.classList.add('bam');
+                    } else {
+                        tileEl.classList.add('dot');
+                    }
+                } 
+                // Handle wind tiles (east, south, west, north)
+                else if (tile.startsWith('east') || tile.startsWith('south') || 
+                         tile.startsWith('west') || tile.startsWith('north')) {
+                    tileType = 'wind';
+                    displayText = tile.charAt(0).toUpperCase();
+                    tileEl.title = tile.charAt(0).toUpperCase() + tile.slice(1);
+                }
+                // Handle flower tiles (F)
+                else if (tile.startsWith('F')) {
+                    tileType = 'flower';
+                    displayText = 'F';
+                    tileEl.title = 'Flower';
+                }
+                // Handle numbered tiles (1b-9b, 1c-9c, 1d-9d)
+                else if (/^[1-9][bcd]$/.test(tile)) {
+                    const num = tile[0];
+                    const suit = tile[1];
+                    tileSuit = suit === 'b' ? 'bam' : suit === 'c' ? 'crack' : 'dot';
+                    tileValue = num;
+                    displayText = num;
+                    tileEl.title = `${num} ${tileSuit}`;
+                }
+                else if (tile.startsWith('F')) {
+                    tileType = 'flower';
+                    displayText = 'F' + tile.slice(1);
+                    tileEl.title = 'Flower ' + tile.slice(1);
+                }
+                // Handle wind tiles
+                else if (['east', 'south', 'west', 'north'].includes(tile)) {
+                    tileType = 'wind';
+                    displayText = tile.charAt(0).toUpperCase();
+                    tileEl.title = tile.charAt(0).toUpperCase() + tile.slice(1) + ' Wind';
+                }
+                // Handle numbered tiles (1b, 2c, 3d, etc.)
+                else if (/^\d+[bcd]$/.test(tile)) {
+                    const match = tile.match(/^(\d+)([bcd])$/);
+                    if (match) {
+                        tileValue = match[1];
+                        const suit = match[2];
+                        
+                        if (suit === 'b') {
+                            tileType = 'bam';
+                            tileSuit = 'B';
+                        } else if (suit === 'c') {
+                            tileType = 'crack';
+                            tileSuit = 'C';
+                        } else if (suit === 'd') {
+                            tileType = 'dot';
+                            tileSuit = 'D';
+                        }
+                        displayText = tileValue;
+                    }
+                }
+                
+                // Add appropriate classes based on tile type
+                if (tileType) {
+                    tileEl.classList.add(`tile-${tileType}`);
+                }
+                if (tileSuit) {
+                    tileEl.classList.add(tileSuit);
+                }
+                
+                // Create tile content
+                if (tileSuit) {
+                    tileEl.innerHTML = `
+                        <div class="tile-value">${tileValue}</div>
+                        <div class="tile-suit">${tileSuit}</div>
+                    `;
+                } else {
+                    const valueEl = document.createElement('div');
+                    valueEl.className = 'tile-value';
+                    valueEl.textContent = displayText;
+                    tileEl.appendChild(valueEl);
+                }
+                
+                // Highlight matched tiles
+                if (matchedSet.has(tile)) {
+                    tileEl.classList.add('matched');
+                    tileEl.title = (tileEl.title ? tileEl.title + ' - ' : '') + 'Matched in template';
+                }
+                
+                // Add click handler for tile interaction
+                tileEl.addEventListener('click', () => {
+                    tileEl.classList.toggle('selected');
+                });
+                
+                // Add tile to container
+                tilesContainer.appendChild(tileEl);
+            });
+            
+            // Add container to the display
+            handDisplay.appendChild(tilesContainer);
+            console.log('Hand rendered');
+        }
+        
+        // Template definitions
+        templates = {
+            'kong-kong-pair': {
+                name: 'Kong Kong Pair with Flowers and Dragons',
+                description: 'Two kongs, a pair of flowers, and matching dragons',
+                template: `
+                    pair(F, F)
+                    kong(num1, num1, num1, num1) where num1 in 1..9
+                    kong(num2, num2, num2, num2) where num2 in 1..9 and num2 != num1
+                    pair(dragon, dragon) where dragon in [rd, gd, wd]
+                `,
+                generateVariations: function() {
+                    console.log('Generating variations for Kong Kong Pair template...');
+                    const variations = [];
+                    const suits = ['b', 'c', 'd'];
+                    
+                    // Map suits to their corresponding dragons
+                    const suitToDragon = {
+                        'b': 'rd',  // bam -> red dragon
+                        'c': 'gd',  // crack -> green dragon
+                        'd': 'wd'   // dot -> white dragon
+                    };
+                    
+                    // Fixed number combinations to use (1, 2, 3)
+                    const numbers = [1, 2, 3];
+                    
+                    // Generate variations with different suits and fixed number combinations
+                    for (let i = 0; i < suits.length; i++) {
+                        const suit1 = suits[i];
+                        const dragon1 = suitToDragon[suit1];
+                        
+                        for (let j = 0; j < suits.length; j++) {
+                            if (i === j) continue; // Skip same suit pairs
+                            
+                            const suit2 = suits[j];
+                            const dragon2 = suitToDragon[suit2];
+                            
+                            // Use the same number for both kongs within a variation
+                            for (let k = 0; k < numbers.length; k++) {
+                                const num = numbers[k];
+                                
+                                const variation = {
+                                    id: `kkp_${suit1}${num}_${suit2}${num}`,
+                                    name: `Kong Kong Pair (${suit1.toUpperCase()}${num}/${suit2.toUpperCase()}${num})`,
+                                    description: `Two kongs: ${num}${suit1} and ${num}${suit2} with flowers and dragons`,
+                                    slots: [
+                                        { type: 'pair', tiles: ['F', 'F'] },
+                                        { 
+                                            type: 'kong', 
+                                            tiles: [
+                                                `${num}${suit1}`, 
+                                                `${num}${suit1}`, 
+                                                `${num}${suit1}`, 
+                                                `${num}${suit1}`
+                                            ] 
+                                        },
+                                        { 
+                                            type: 'kong', 
+                                            tiles: [
+                                                `${num}${suit2}`, 
+                                                `${num}${suit2}`, 
+                                                `${num}${suit2}`, 
+                                                `${num}${suit2}`
+                                            ] 
+                                        },
+                                        { 
+                                            type: 'pair', 
+                                            tiles: [dragon1, dragon2],
+                                            description: `Dragons matching the suits (${dragon1}/${dragon2})`
+                                        }
+                                    ],
+                                    requiredTiles: {
+                                        flowers: 2,
+                                        dragons: 2,
+                                        kongs: 2,
+                                        pairs: 1
+                                    },
+                                    score: 10,
+                                    isLimitHand: false
+                                };
+                                
+                                variations.push(variation);
+                            }
+                        }
+                    }
+                    
+                    console.log(`Generated ${variations.length} variations for Kong Kong Pair template`);
+                    return variations;
+                }
+            },
+            'simple-pair': {
+                name: 'Simple Pair',
+                description: 'Just a simple pair of dragons',
+                template: 'pair(dragon, dragon) where dragon in [rd, gd, wd]',
+                generateVariations: function() {
+                    console.log('Generating variations for Simple Pair template...');
+                    const variations = [];
+                    const dragons = ['rd', 'gd', 'wd'];
+                    
+                    dragons.forEach(dragon => {
+                        variations.push({
+                            id: `sp_${dragon}`,
+                            name: `Dragon Pair (${dragon})`,
+                            description: `A pair of ${dragon} dragons`,
+                            slots: [
+                                { type: 'pair', tiles: [dragon, dragon] }
+                            ],
+                            requiredTiles: {
+                                dragons: 2
+                            },
+                            score: 2
+                        });
+                    });
+                    
+                    console.log(`Generated ${variations.length} variations for Simple Pair template`);
+                    return variations;
+                }
+            },
+            'joker-test': {
+                name: 'Joker Test',
+                description: 'Test hand with jokers',
+                template: 'pung(tile1, tile1, J) where tile1 in [1b, 2b, 3b]',
+                generateVariations: function() {
+                    console.log('Generating variations for Joker Test template...');
+                    const variations = [];
+                    const numbers = [1, 2, 3];
+                    const suits = ['b'];
+                    
+                    numbers.forEach(num => {
+                        suits.forEach(suit => {
+                            const tile = `${num}${suit}`;
+                            variations.push({
+                                id: `jt_${tile}`,
+                                name: `Joker Pung (${tile})`,
+                                description: `A pung of ${tile} with a joker`,
+                                slots: [
+                                    { type: 'pung', tiles: [tile, tile, 'J'] }
+                                ],
+                                requiredTiles: {
+                                    [tile]: 2,
+                                    'J': 1
+                                },
+                                score: 4
+                            });
+                        });
+                    });
+                    
+                    console.log(`Generated ${variations.length} variations for Joker Test template`);
+                    return variations;
+                }
+            }
+        }
+        
+        // Simple renderer for the template image specification
+        function renderTemplateImage(imageSpec) {
+            if (!imageSpec) return '';
+            
+            // Convert to string in case it's not
+            const spec = String(imageSpec);
+            
+            // Replace special characters for HTML display
+            return spec
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\n/g, '<br>');
+        }
+        
+        // Initialize everything when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('MTL loaded:', { MTL, MTL_Evaluator, MTL_Utils });
+            initializeElements();
+            initializeTemplates();
+            setupEventListeners();
+            loadTemplate();
+        });
+    })();
+    </script>
+</body>
+</html>

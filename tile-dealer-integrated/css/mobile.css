@@ -1,0 +1,117 @@
+/* Mobile-specific styles for Mahjongg Tools */
+
+/* Touch feedback */
+.tile-touched {
+    transform: scale(1.1) !important;
+    z-index: 10;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3) !important;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+/* Prevent text selection on tiles */
+.tile {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Base mobile styles */
+@media screen and (max-width: 768px) {
+    /* Main layout adjustments */
+    body {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    header, main, footer {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    /* Controls */
+    #controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    #controls button {
+        width: 100%;
+        padding: 12px;
+        margin: 5px 0;
+        font-size: 1.1em;
+    }
+
+    /* Tile adjustments */
+    .tile {
+        width: 60px;
+        height: 85px;
+        margin: 3px;
+        font-size: 1.3em;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+    }
+
+    .tile-rank {
+        font-size: 1.4em;
+    }
+
+    .tile-suit-suffix {
+        font-size: 0.8em;
+    }
+
+    /* Special tiles */
+    .tile-wind, .tile-flower {
+        font-size: 1.5em;
+    }
+
+    .tile-dragon-red,
+    .tile-dragon-green,
+    .tile-dragon-white,
+    .tile-joker {
+        font-size: 0.7em;
+        padding: 2px;
+        box-sizing: border-box;
+    }
+
+    /* Hand display */
+    #dealt-hand-container {
+        padding: 8px;
+        min-height: 120px;
+    }
+
+    /* Hide non-essential elements on small screens */
+    .desktop-only {
+        display: none;
+    }
+}
+
+/* Extra small devices (phones, 600px and down) */
+@media screen and (max-width: 480px) {
+    .tile {
+        width: 55px;
+        height: 80px;
+    }
+
+    #controls {
+        gap: 8px;
+    }
+
+    #controls button {
+        padding: 10px;
+        font-size: 1em;
+    }
+
+    /* Adjust tile text for better readability */
+    .tile-rank {
+        font-size: 1.3em;
+    }
+
+    .tile-suit-suffix {
+        font-size: 0.7em;
+    }
+}
+

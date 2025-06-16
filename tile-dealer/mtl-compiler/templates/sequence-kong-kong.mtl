@@ -1,11 +1,12 @@
 // Sequence of 5 and 2 Kongs
-category = "Consecutive Run"
-catid = 7
-image = "<green>112345 <red>1111 <black>1111"
-name = "Sequence Kong Kong"
-description = "Sequence of 5, 2 Kongs matching first number"
+metadata =
+    category = "Consecutive Run"
+    catid = "7"
+    image = "<green>112345 <red>1111 <black>1111"
+    name = "Sequence Kong Kong"
+    description = "Sequence of 5, 2 Kongs matching first number"
 
-Variations:
+Variations =
 // MTL code defines the set
 // Define suits
 suits = (b, c, d)

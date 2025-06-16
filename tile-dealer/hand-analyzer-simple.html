@@ -1237,6 +1237,16 @@ document.getElementById('sortNumBtn').onclick = function() {
     sortHand(currentHand, false); // false for sortBySuitPrimary (so sort by number first)
     renderHand(currentHand, handDisplay);
 };
+
+// Load TypeScript utilities
+const tsScript = document.createElement('script');
+tsScript.type = 'module';
+tsScript.textContent = `
+    import { tsUtils } from './dist/index.js';
+    window.tsUtils = tsUtils;
+    console.log('TypeScript utilities loaded:', Object.keys(tsUtils));
+`;
+document.body.appendChild(tsScript);
 </script>
 </body>
 </html>

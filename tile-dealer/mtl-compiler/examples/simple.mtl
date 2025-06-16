@@ -1,0 +1,29 @@
+Name: Simple Test Template
+Description: A simple test template for the MTL parser
+Author: Cascade
+Version: 1.0
+
+Variations:
+
+pung(1, "bamboo")
+pung(2, "character")
+pung(3, "dot")
+
+variation1 = [
+    pung(1, "bamboo"),
+    pung(2, "character"),
+    pung(3, "dot")
+]
+
+variation2 = [
+    kong(4, "bamboo"),
+    kong(5, "character"),
+    kong(6, "dot")
+]
+
+foreach (suit in ["bamboo", "character", "dot"]) {
+    pung(7, suit)
+    pung(8, suit)
+}
+
+// End of file

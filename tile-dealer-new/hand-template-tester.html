@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjong Hand Template Tester</title>
+    <link rel="stylesheet" href="css/tiles.css">
+    <link rel="stylesheet" href="css/mahjongg-styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+        }
+        
+        .main-content {
+            flex-grow: 1;
+        }
+        
+        .template {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .template h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .category {
+            font-style: italic;
+            color: #7f8c8d;
+            margin: 5px 0;
+        }
+        
+        .mtl-pattern {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .variation {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 3px;
+        }
+        
+        .variation-name {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .tiles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin: 5px 0;
+        }
+        
+        .tile {
+            width: 24px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            background: #fff;
+            border: 1px solid #999;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .tile:hover {
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <h1>Mahjong Hand Template Tester</h1>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2>Templates</h2>
+            <div id="template-list">
+                <!-- Template list will be populated by JavaScript -->
+                <p>Loading templates...</p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <h2>Template Details</h2>
+            <div id="template-details">
+                <p>Select a template from the sidebar to view details.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts in order with defer to ensure they're loaded in the right order -->
+    <script src="js/hand-templates/BaseTemplate.js" defer></script>
+    <script src="js/hand-templates/SevenPairsTemplate.js" defer></script>
+    <script src="js/hand-templates/TemplateManager.js" defer></script>
+    
+    <script>
+    // This will run after all scripts are loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit to ensure all scripts are loaded
+        setTimeout(function() {
+            // Check if our components are available
+            if (typeof window.templateManager === 'undefined' || 
+                typeof window.SevenPairsTemplate === 'undefined') {
+                console.error('Required components not loaded');
+                return;
+            }
+            
+            try {
+                // Register our template
+                var sevenPairs = new window.SevenPairsTemplate();
+                sevenPairs.generateVariations();
+                window.templateManager.registerTemplate(sevenPairs);
+                
+                // Initialize the UI
+                updateTemplateList();
+                
+                // Show the first template by default if available
+                var templates = window.templateManager.getAllTemplates();
+                if (templates.length > 0) {
+                    window.showTemplateDetails(templates[0].name);
+                }
+            } catch (error) {
+                console.error('Error initializing templates:', error);
+                document.getElementById('template-details').innerHTML = 
+                    '<p>Error loading templates. Check console for details.</p>';
+            }
+        }, 100);
+    });
+    
+    // UI Functions
+    function updateTemplateList() {
+        var templateList = document.getElementById('template-list');
+        if (!templateList) return;
+        
+        var templates = window.templateManager.getAllTemplates();
+        
+        if (!templates || templates.length === 0) {
+            templateList.innerHTML = '<p>No templates found.</p>';
+            return;
+        }
+        
+        var html = '<ul style="list-style: none; padding: 0;">';
+        for (var i = 0; i < templates.length; i++) {
+            var template = templates[i];
+            html += '<li style="margin-bottom: 10px;">';
+            html += '<button ';
+            html += 'onclick="showTemplateDetails(\'' + template.name.replace(/'/g, '\\\'') + '\')" ';
+            html += 'style="width: 100%; text-align: left; padding: 8px; background: #f0f0f0; ';
+            html += 'border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">';
+            html += '<strong>' + (template.name || 'Unnamed Template') + '</strong><br>';
+            html += '<small>' + (template.category || 'No Category') + ' • ' + 
+                    ((template.variations && template.variations.length) || 0) + ' variations</small>';
+            html += '</button>';
+            html += '</li>';
+        }
+        html += '</ul>';
+        
+        templateList.innerHTML = html;
+    }
+    
+    // Make this function available globally for the onclick handler
+    window.showTemplateDetails = function(templateName) {
+        if (!templateName || !window.templateManager) {
+            document.getElementById('template-details').innerHTML = 
+                '<p>Template manager not loaded.</p>';
+            return;
+        }
+        
+        var template = window.templateManager.getTemplate(templateName);
+        if (!template || typeof template.toHTML !== 'function') {
+            document.getElementById('template-details').innerHTML = 
+                '<p>Template not found or invalid.</p>';
+            return;
+        }
+        
+        try {
+            document.getElementById('template-details').innerHTML = template.toHTML();
+        } catch (error) {
+            console.error('Error rendering template:', error);
+            document.getElementById('template-details').innerHTML = 
+                '<p>Error rendering template. Check console for details.</p>';
+        }
+    };
+    </script>
+</body>
+</html>

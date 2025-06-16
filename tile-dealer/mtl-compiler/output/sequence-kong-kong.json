@@ -1,7 +1,7 @@
 {
   "templates": [
     {
-      "id": 7,
+      "id": "7",
       "category": "Consecutive Run",
       "name": "Sequence Kong Kong",
       "description": "Sequence of 5, 2 Kongs matching first number",

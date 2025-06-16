@@ -1,10 +1,10 @@
 {
   "templates": [
     {
-      "id": 1,
+      "id": "1b",
       "category": "369",
       "name": "p3 k6 p6 k9 in 3 suits",
-      "description": "3669 - s1 s1 s2 s3",
+      "description": "Pung of 3s, Kong of 6s (same suit), Pung of 6s (different suit), Kong of 9s",
       "image": "<green>333 6666 <red>666 <black>9999",
       "variations": [
         [

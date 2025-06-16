@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg Tile Dealer (Simple)</title>
+    
+    <style>
+        /* Base styles */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        /* Tile styles */
+        .tile {
+            width: 45px;
+            height: 65px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #fdf5e6;
+            margin: 2px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            user-select: none;
+            flex-shrink: 0;
+        }
+        
+        .tile-content {
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Suit colors */
+        .tile[data-suit="B"] { color: #006600; } /* Bamboo - Green */
+        .tile[data-suit="C"] { color: #cc0000; } /* Characters - Red */
+        .tile[data-suit="D"] { color: #0000cc; } /* Dots - Blue */
+        
+        /* Dragons */
+        .tile[data-suit="RD"] { color: #cc0000; } /* Red Dragon */
+        .tile[data-suit="GD"] { color: #006600; } /* Green Dragon */
+        .tile[data-suit="WD"] { color: #666666; } /* White Dragon */
+        
+        /* Winds */
+        .tile[data-suit="N"],
+        .tile[data-suit="E"],
+        .tile[data-suit="S"],
+        .tile[data-suit="W"] {
+            color: #000000;
+            background-color: #f0f0f0;
+        }
+        
+        /* Flowers */
+        .tile[data-suit="FL"] {
+            color: #8e44ad;
+            font-size: 24px;
+        }
+        
+        /* Joker */
+        .tile[data-suit="JK"] {
+            color: #e67e22;
+            font-size: 24px;
+        }
+        
+        /* Tile corner indicators */
+        .tile::before {
+            content: attr(data-corner);
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        
+        /* Hand container */
+        #hand-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 100px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Debug output */
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mahjongg Tile Dealer (Simple)</h1>
+        
+        <div class="controls">
+            <button id="deal-13">Deal 13 Tiles</button>
+            <button id="deal-14">Deal 14 Tiles</button>
+            <button id="add-tile">Add Tile</button>
+            <button id="sort-hand">Sort Hand</button>
+            <button id="analyze">Analyze</button>
+        </div>
+        
+        <div id="hand-container">
+            <!-- Tiles will be added here -->
+        </div>
+        
+        <div id="analysis" class="analysis-panel" style="display: none;">
+            <h2>Hand Analysis</h2>
+            <div id="analysis-results"></div>
+        </div>
+        
+        <div id="debug"></div>
+    </div>
+    
+    <script>
+        // Debug logging
+        function debugLog(message) {
+            console.log(message);
+            const debugEl = document.getElementById('debug');
+            if (debugEl) {
+                const line = document.createElement('div');
+                line.textContent = `[${new Date().toISOString()}] ${message}`;
+                debugEl.appendChild(line);
+                debugEl.scrollTop = debugEl.scrollHeight;
+            }
+        }
+        
+        // Game state
+        let deck = [];
+        let hand = [];
+        
+        // Tile definitions
+        const TILE_TYPES = {
+            // Suits
+            'B': { name: 'Bamboo', values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+            'C': { name: 'Characters', values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+            'D': { name: 'Dots', values: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+            // Dragons
+            'RD': { name: 'Red Dragon' },
+            'GD': { name: 'Green Dragon' },
+            'WD': { name: 'White Dragon' },
+            // Winds
+            'E': { name: 'East Wind' },
+            'S': { name: 'South Wind' },
+            'W': { name: 'West Wind' },
+            'N': { name: 'North Wind' },
+            // Special
+            'FL': { name: 'Flower' },
+            'JK': { name: 'Joker' }
+        };
+        
+        // Initialize the deck
+        function initDeck() {
+            deck = [];
+            
+            // Add 4 of each tile
+            for (let i = 0; i < 4; i++) {
+                // Add suit tiles
+                for (const [suit, def] of Object.entries(TILE_TYPES)) {
+                    if (def.values) {
+                        // Numbered tiles (Bamboo, Characters, Dots)
+                        for (const value of def.values) {
+                            deck.push({ type: suit, value, id: `${value}${suit}` });
+                        }
+                    } else if (suit !== 'FL' && suit !== 'JK') {
+                        // Honor tiles (dragons, winds)
+                        deck.push({ type: suit, id: suit });
+                    }
+                }
+                
+                // Add one flower and one joker per set
+                deck.push({ type: 'FL', id: 'FL' });
+                deck.push({ type: 'JK', id: 'JK' });
+            }
+            
+            debugLog(`Initialized deck with ${deck.length} tiles`);
+            return deck;
+        }
+        
+        // Shuffle the deck
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            debugLog('Deck shuffled');
+        }
+        
+        // Deal a hand of tiles
+        function dealHand(count) {
+            if (deck.length < count) {
+                debugLog('Not enough tiles in deck!');
+                return [];
+            }
+            
+            const dealt = deck.splice(0, count);
+            debug.log(`Dealt ${count} tiles: ${dealt.map(t => t.id).join(', ')}`);
+            return dealt;
+        }
+        
+        // Add a tile to the hand
+        function addTile() {
+            if (deck.length === 0) {
+                debugLog('No more tiles in deck!');
+                return;
+            }
+            
+            const tile = deck.pop();
+            hand.push(tile);
+            renderHand();
+            debugLog(`Added tile: ${tile.id}`);
+        }
+        
+        // Render the current hand
+        function renderHand() {
+            const container = document.getElementById('hand-container');
+            container.innerHTML = '';
+            
+            hand.forEach((tile, index) => {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile';
+                tileEl.setAttribute('data-suit', tile.type);
+                
+                // Set tile content
+                const content = document.createElement('div');
+                content.className = 'tile-content';
+                
+                // Set display text based on tile type
+                if (tile.value !== undefined) {
+                    // Numbered tile
+                    content.textContent = tile.value;
+                    tileEl.setAttribute('data-corner', TILE_TYPES[tile.type].name.charAt(0));
+                } else if (tile.type === 'FL') {
+                    // Flower
+                    content.textContent = '❀';
+                    tileEl.setAttribute('data-corner', 'Flower');
+                } else if (tile.type === 'JK') {
+                    // Joker
+                    content.textContent = 'J';
+                    tileEl.setAttribute('data-corner', 'Joker');
+                } else if (['RD', 'GD', 'WD'].includes(tile.type)) {
+                    // Dragon
+                    content.textContent = tile.type === 'RD' ? '中' : 
+                                         tile.type === 'GD' ? '發' : '白';
+                    tileEl.setAttribute('data-corner', 'Dragon');
+                } else {
+                    // Wind
+                    content.textContent = tile.type;
+                    tileEl.setAttribute('data-corner', 'Wind');
+                }
+                
+                tileEl.appendChild(content);
+                container.appendChild(tileEl);
+            });
+        }
+        
+        // Sort the hand
+        function sortHand() {
+            // Simple sort by type and value
+            hand.sort((a, b) => {
+                if (a.type !== b.type) {
+                    return a.type.localeCompare(b.type);
+                }
+                return (a.value || 0) - (b.value || 0);
+            });
+            
+            renderHand();
+            debugLog('Hand sorted');
+        }
+        
+        // Analyze the hand
+        function analyzeHand() {
+            // This will be implemented in the next step
+            document.getElementById('analysis').style.display = 'block';
+            document.getElementById('analysis-results').innerHTML = '<p>Hand analysis will be implemented in the next step.</p>';
+            debugLog('Analyzing hand...');
+        }
+        
+        // Initialize the application
+        function init() {
+            // Initialize and shuffle the deck
+            initDeck();
+            shuffleDeck();
+            
+            // Set up event listeners
+            document.getElementById('deal-13').addEventListener('click', () => {
+                hand = dealHand(13);
+                renderHand();
+            });
+            
+            document.getElementById('deal-14').addEventListener('click', () => {
+                hand = dealHand(14);
+                renderHand();
+            });
+            
+            document.getElementById('add-tile').addEventListener('click', addTile);
+            document.getElementById('sort-hand').addEventListener('click', sortHand);
+            document.getElementById('analyze').addEventListener('click', analyzeHand);
+            
+            debugLog('Application initialized');
+        }
+        
+        // Start the application when the page loads
+        window.onload = init;
+    </script>
+</body>
+</html>

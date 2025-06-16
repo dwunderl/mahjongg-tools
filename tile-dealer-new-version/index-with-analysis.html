@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg Tile Dealer with Analysis</title>
+    <link rel="stylesheet" href="css/mahjongg-styles.css">
+    <link rel="stylesheet" href="css/tiles.css">
+    <style>
+        /* Analysis panel styles */
+        .analysis-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-section {
+            margin-bottom: 15px;
+        }
+        
+        .analysis-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .tile-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin: 5px 0;
+        }
+        
+        .controls {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        button {
+            padding: 8px 12px;
+            margin-right: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mahjongg Tile Dealer with Analysis</h1>
+        
+        <div class="controls">
+            <button id="deal-13-btn">Deal 13 Tiles</button>
+            <button id="deal-14-btn">Deal 14 Tiles</button>
+            <button id="analyze-btn">Analyze Hand</button>
+            <button id="reset-btn">Reset Deck</button>
+            <span style="margin-left: 20px;">Tiles remaining: <span id="tile-count">144</span></span>
+        </div>
+        
+        <div id="dealt-hand-container">
+            <div id="tiles-row" class="tiles-row">
+                <!-- Tiles will be rendered here -->
+            </div>
+        </div>
+        
+        <div class="analysis-panel">
+            <h2>Hand Analysis</h2>
+            <div id="analysis-results">
+                <p>Deal a hand to see the analysis.</p>
+            </div>
+        </div>
+        
+        <div id="debug-messages" style="margin-top: 20px; font-family: monospace; white-space: pre;"></div>
+    </div>
+    
+    <script>
+        // Simple debug logging function
+        function debugLog(message) {
+            console.log(message);
+            const debugEl = document.getElementById('debug-messages');
+            if (debugEl) {
+                const line = document.createElement('div');
+                line.textContent = `[${new Date().toISOString()}] ${message}`;
+                debugEl.appendChild(line);
+                debugEl.scrollTop = debugEl.scrollHeight;
+            }
+        }
+        
+        // Global variables
+        let fullDeck = [];
+        let currentHand = [];
+        
+        // Initialize the application
+        function init() {
+            debugLog('Initializing Mahjongg Dealer...');
+            
+            // Create and shuffle the initial deck
+            fullDeck = createFullDeck();
+            shuffleDeck(fullDeck);
+            
+            // Set up event listeners
+            document.getElementById('deal-13-btn').onclick = () => handleDeal(13);
+            document.getElementById('deal-14-btn').onclick = () => handleDeal(14);
+            document.getElementById('analyze-btn').onclick = () => analyzeHand(currentHand);
+            document.getElementById('reset-btn').onclick = resetDeck;
+            
+            // Initial debug message
+            debugLog('Initialization complete');
+        }
+        
+        // Create a full deck of Mahjongg tiles
+        function createFullDeck() {
+            debugLog('Creating full deck...');
+            const deck = [];
+            
+            // Add suit tiles (Bamboo, Characters, Dots)
+            const suits = ['B', 'C', 'D'];
+            const values = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            
+            // 4 of each tile in a full set
+            for (let i = 0; i < 4; i++) {
+                // Suit tiles
+                suits.forEach(suit => {
+                    values.forEach(value => {
+                        deck.push(`${value}${suit}`);
+                    });
+                });
+                
+                // Dragons
+                deck.push('RD'); // Red Dragon
+                deck.push('GD'); // Green Dragon
+                deck.push('WD'); // White Dragon
+                
+                // Winds
+                deck.push('N'); // North
+                deck.push('E'); // East
+                deck.push('S'); // South
+                deck.push('W'); // West
+                
+                // Flowers and Jokers (one of each per set)
+                deck.push('FL'); // Flower
+                deck.push('JK');  // Joker
+            }
+            
+            debugLog(`Created deck with ${deck.length} tiles`);
+            return deck;
+        }
+        
+        // Shuffle the deck using Fisher-Yates algorithm
+        function shuffleDeck(deck) {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            debugLog('Deck shuffled');
+        }
+        
+        // Deal a hand of tiles
+        function dealHand(numTiles) {
+            if (numTiles > fullDeck.length) {
+                debugLog(`Not enough tiles in deck (${fullDeck.length} left, ${numTiles} requested)`);
+                return [];
+            }
+            
+            const hand = [];
+            for (let i = 0; i < numTiles; i++) {
+                hand.push(fullDeck.pop());
+            }
+            
+            debugLog(`Dealt ${numTiles} tiles: ${hand.join(', ')}`);
+            return hand;
+        }
+        
+        // Reset the deck
+        function resetDeck() {
+            debugLog('Resetting deck...');
+            fullDeck = createFullDeck();
+            shuffleDeck(fullDeck);
+            currentHand = [];
+            document.getElementById('tiles-row').innerHTML = '';
+            document.getElementById('tile-count').textContent = fullDeck.length;
+            document.getElementById('analysis-results').innerHTML = '<p>Deck has been reset. Deal a new hand to begin.</p>';
+        }
+        
+        // Handle deal button click
+        function handleDeal(numTiles) {
+            if (fullDeck.length < numTiles) {
+                debugLog(`Not enough tiles in deck (${fullDeck.length} left, ${numTiles} requested)`);
+                return;
+            }
+            
+            currentHand = dealHand(numTiles);
+            displayHand(currentHand);
+            
+            // Auto-analyze the hand
+            analyzeHand(currentHand);
+        }
+        
+        // Display the hand on the page
+        function displayHand(hand) {
+            debugLog(`Displaying hand with ${hand.length} tiles`);
+            const container = document.getElementById('tiles-row');
+            if (!container) {
+                debugLog('ERROR: Could not find tiles row container');
+                return;
+            }
+            
+            // Clear previous hand
+            container.innerHTML = '';
+            
+            // Add each tile
+            hand.forEach((tileCode) => {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile';
+                
+                // Extract suit and value for styling
+                const suitMatch = tileCode.match(/[A-Za-z]+/);
+                const valueMatch = tileCode.match(/\d+/);
+                const suit = suitMatch ? suitMatch[0] : '';
+                const value = valueMatch ? valueMatch[0] : '';
+                
+                // Set data attributes for styling
+                tileEl.setAttribute('data-suit', suit || tileCode);
+                if (value) tileEl.setAttribute('data-value', value);
+                
+                // Add specific class for dot tiles and white dragon
+                if (suit === 'D' || tileCode === 'WD') {
+                    tileEl.classList.add('dot-tile');
+                }
+                
+                // Set tile content with proper display text
+                let displayText = tileCode;
+                if (suit && value) {
+                    // For numbered tiles (e.g., 1C, 2B, 3D)
+                    displayText = value;
+                    // Map single-letter suit codes to full names
+                    const suitNames = { 'C': 'Crack', 'B': 'Bam', 'D': 'Dot' };
+                    tileEl.setAttribute('data-corner', suitNames[suit] || suit);
+                } else if (tileCode === 'RD') {
+                    displayText = 'Red';
+                    tileEl.setAttribute('data-corner', 'Dragon');
+                } else if (tileCode === 'GD') {
+                    displayText = 'Green';
+                    tileEl.setAttribute('data-corner', 'Dragon');
+                } else if (tileCode === 'WD') {
+                    displayText = 'Soap';
+                    tileEl.setAttribute('data-corner', 'Dragon');
+                } else if (['N', 'E', 'S', 'W'].includes(tileCode)) {
+                    // Use single letter for wind directions
+                    displayText = tileCode;
+                    tileEl.setAttribute('data-corner', 'Wind');
+                } else if (tileCode === 'FL') {
+                    displayText = '🌺';
+                    tileEl.setAttribute('data-corner', 'Flower');
+                } else if (tileCode === 'JK') {
+                    displayText = '🃏';
+                    tileEl.setAttribute('data-corner', 'Joker');
+                }
+                
+                // Create a span for the tile content for better styling control
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'tile-content';
+                contentSpan.textContent = displayText;
+                tileEl.appendChild(contentSpan);
+                container.appendChild(tileEl);
+            });
+            
+            // Update remaining tiles count
+            document.getElementById('tile-count').textContent = fullDeck.length;
+            
+            debugLog(`Displayed ${hand.length} tiles`);
+        }
+        
+        // Analyze the current hand
+        function analyzeHand(hand) {
+            debugLog('Analyzing hand...');
+            const resultsEl = document.getElementById('analysis-results');
+            
+            if (hand.length === 0) {
+                resultsEl.innerHTML = '<p>No tiles in hand to analyze.</p>';
+                return;
+            }
+            
+            // Group tiles by type and value
+            const groups = {};
+            hand.forEach(tileCode => {
+                if (!groups[tileCode]) {
+                    groups[tileCode] = 0;
+                }
+                groups[tileCode]++;
+            });
+            
+            // Find pairs, pungs, kongs
+            const pairs = [];
+            const pungs = [];
+            const kongs = [];
+            const singles = [];
+            
+            Object.entries(groups).forEach(([tileCode, count]) => {
+                if (count >= 4) {
+                    kongs.push(tileCode);
+                } else if (count === 3) {
+                    pungs.push(tileCode);
+                } else if (count === 2) {
+                    pairs.push(tileCode);
+                } else {
+                    singles.push(tileCode);
+                }
+            });
+            
+            // Generate HTML for analysis results
+            let html = `
+                <div class="analysis-section">
+                    <h3>Hand Summary</h3>
+                    <p>Total Tiles: ${hand.length}</p>
+                </div>
+                
+                <div class="analysis-section">
+                    <h3>Combinations</h3>
+                    
+                    <div class="analysis-subsection">
+                        <h4>Kongs (4 of a kind): ${kongs.length}</h4>
+                        <div class="tile-group">
+                            ${kongs.map(tileCode => createTileHtml(tileCode, 4)).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-subsection">
+                        <h4>Pungs (3 of a kind): ${pungs.length}</h4>
+                        <div class="tile-group">
+                            ${pungs.map(tileCode => createTileHtml(tileCode, 3)).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-subsection">
+                        <h4>Pairs: ${pairs.length}</h4>
+                        <div class="tile-group">
+                            ${pairs.map(tileCode => createTileHtml(tileCode, 2)).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-subsection">
+                        <h4>Singles: ${singles.length}</h4>
+                        <div class="tile-group">
+                            ${singles.map(tileCode => createTileHtml(tileCode, 1)).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultsEl.innerHTML = html;
+            debugLog('Analysis complete');
+        }
+        
+        // Create HTML for a tile in the analysis
+        function createTileHtml(tileCode, count) {
+            const tileEl = document.createElement('div');
+            tileEl.className = 'tile analysis-tile';
+            
+            // Extract suit and value for styling
+            const suitMatch = tileCode.match(/[A-Za-z]+/);
+            const valueMatch = tileCode.match(/\d+/);
+            const suit = suitMatch ? suitMatch[0] : '';
+            const value = valueMatch ? valueMatch[0] : '';
+            
+            // Set data attributes for styling
+            tileEl.setAttribute('data-suit', suit || tileCode);
+            if (value) tileEl.setAttribute('data-value', value);
+            
+            // Add specific class for dot tiles and white dragon
+            if (suit === 'D' || tileCode === 'WD') {
+                tileEl.classList.add('dot-tile');
+            }
+            
+            // Set tile content with proper display text
+            let displayText = tileCode;
+            if (suit && value) {
+                // For numbered tiles (e.g., 1C, 2B, 3D)
+                displayText = value;
+                // Map single-letter suit codes to full names
+                const suitNames = { 'C': 'Crack', 'B': 'Bam', 'D': 'Dot' };
+                tileEl.setAttribute('data-corner', suitNames[suit] || suit);
+            } else if (tileCode === 'RD') {
+                displayText = 'Red';
+                tileEl.setAttribute('data-corner', 'Dragon');
+            } else if (tileCode === 'GD') {
+                displayText = 'Green';
+                tileEl.setAttribute('data-corner', 'Dragon');
+            } else if (tileCode === 'WD') {
+                displayText = 'Soap';
+                tileEl.setAttribute('data-corner', 'Dragon');
+            } else if (['N', 'E', 'S', 'W'].includes(tileCode)) {
+                // Use single letter for wind directions
+                displayText = tileCode;
+                tileEl.setAttribute('data-corner', 'Wind');
+            } else if (tileCode === 'FL') {
+                displayText = '🌺';
+                tileEl.setAttribute('data-corner', 'Flower');
+            } else if (tileCode === 'JK') {
+                displayText = '🃏';
+                tileEl.setAttribute('data-corner', 'Joker');
+            }
+            
+            // Create a span for the tile content for better styling control
+            const contentSpan = document.createElement('span');
+            contentSpan.className = 'tile-content';
+            contentSpan.textContent = displayText;
+            tileEl.appendChild(contentSpan);
+            
+            // Add count badge if more than 1
+            if (count > 1) {
+                const countBadge = document.createElement('span');
+                countBadge.className = 'tile-count';
+                countBadge.textContent = count;
+                tileEl.appendChild(countBadge);
+            }
+            
+            return tileEl.outerHTML;
+        }
+        
+        // Initialize the app when the page loads
+        window.onload = init;
+    </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahjongg Tile Dealer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            padding: 10px 15px;
+            margin: 0 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .tile-display {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #tiles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 100px;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border: 1px dashed #ddd;
+        }
+        
+        .tile {
+            width: 45px !important;
+            height: 65px !important;
+            border: 1px solid #333 !important;
+            border-radius: 5px !important;
+            background-color: #fdf5e6 !important;
+            margin: 2px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            position: relative !important;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2) !important;
+            user-select: none !important;
+            font-family: Arial, sans-serif !important;
+            font-weight: bold !important;
+            font-size: 1.2em !important;
+            line-height: 1.2 !important;
+            padding: 2px !important;
+            box-sizing: border-box !important;
+        }
+        
+        .tile .tile-content {
+            display: block;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        /* Color coding for suits */
+        .tile[data-suit="C"] { color: #c00; } /* Crack - Red */
+        .tile[data-suit="B"] { color: #060; } /* Bam - Green */
+        .tile[data-suit="D"] { color: #000; } /* Dot - Black */
+        .tile[data-suit^="E"], 
+        .tile[data-suit^="S"], 
+        .tile[data-suit^="W"], 
+        .tile[data-suit^="N"] { 
+            color: #000; /* Wind - Black */
+        }
+        
+        /* Special tile backgrounds */
+        .tile[data-suit="RD"] {
+            background-color: #c00 !important; /* Red background */
+            color: #fff !important; /* White text */
+            border-color: #000 !important;
+        }
+        
+        .tile[data-suit="GD"] {
+            background-color: #060 !important; /* Green background */
+            color: #fff !important; /* White text */
+            border-color: #000 !important;
+        }
+        
+        .tile[data-suit="WD"] {
+            background-color: #fff !important; /* White background */
+            color: #000 !important; /* Black text */
+            border-color: #000 !important;
+        }
+        
+        /* Flower tile styling */
+        .tile-flower { 
+            color: #ff69b4 !important; /* Pink */
+            font-size: 1.8em !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Joker tile styling */
+        .tile-joker { 
+            color: #800080 !important; /* Purple */
+            font-style: italic;
+            font-size: 0.8em !important;
+            background: repeating-linear-gradient(
+                45deg,
+                #f5f5f5,
+                #f5f5f5 8px,
+                #e0e0e0 8px,
+                #e0e0e0 16px
+            ) !important;
+            border: 2px dashed #9e9e9e !important;
+            padding: 5px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Dragon tile styling */
+        .tile-dragon {
+            font-weight: bold !important;
+            font-size: 0.9em !important;
+            text-align: center;
+            padding: 5px !important;
+        }
+        
+        .tile-dragon-red {
+            background-color: #c00 !important;
+            color: #fff !important;
+            border: 1px solid #000 !important;
+        }
+        
+        .tile-dragon-green {
+            background-color: #060 !important;
+            color: #fff !important;
+            border: 1px solid #000 !important;
+        }
+        
+        .tile-dragon-white {
+            background-color: #fff !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+        }
+        
+        /* Wind tile styling */
+        .tile-wind {
+            color: #000 !important;
+            font-weight: bold !important;
+            font-size: 1.8em !important;
+        }
+        
+        /* Suit tile corner indicators */
+        .tile[data-corner]::before {
+            content: attr(data-corner);
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 10px !important;
+            font-weight: normal !important;
+            opacity: 0.8;
+            line-height: 1 !important;
+            font-family: Arial, sans-serif !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+        
+        .tile-count {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mahjongg Tile Dealer</h1>
+            <a href="../index.html" class="back-link">← Back to Mahjongg Tools</a>
+        </header>
+        
+        <div class="controls">
+            <button id="deal-13-btn">Deal 13 Tiles</button>
+            <button id="deal-14-btn">Deal 14 Tiles</button>
+            <button id="reset-deck-btn">Reset Deck</button>
+        </div>
+        
+        <div class="tile-display">
+            <h2>Your Hand:</h2>
+            <div id="tiles-container">
+                <!-- Tiles will be added here by JavaScript -->
+            </div>
+            <p>Tiles remaining: <span id="tile-count" class="tile-count">0</span></p>
+        </div>
+    </div>
+
+    <script>
+    // Simple debug logging function
+    function debugLog(message) {
+        console.log(message);
+    }
+    
+    // Load the mahjongg dealer script
+    function loadMainScript() {
+        debugLog('Loading mahjongg script...');
+        
+        const script = document.createElement('script');
+        script.src = 'js/simple-dealer.js';
+        script.onload = function() {
+            debugLog('Mahjongg dealer script loaded successfully');
+            
+            // Auto-initialize the dealer
+            if (window.MahjonggDealer) {
+                window.dealer = new MahjonggDealer();
+                // Auto-deal a hand on load
+                setTimeout(() => window.dealer.dealHand(13), 100);
+            }
+        };
+        script.onerror = function() {
+            console.error('Failed to load mahjongg dealer script');
+        };
+        
+        document.body.appendChild(script);
+    }
+    
+    // Initialize when the DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadMainScript);
+    } else {
+        loadMainScript();
+    }
+    </script>
+</body>
+</html>

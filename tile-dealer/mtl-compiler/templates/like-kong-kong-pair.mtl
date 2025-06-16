@@ -1,11 +1,12 @@
 // Kong Kong Pair with Flowers and Dragons
-category = "ANY LIKE NUMBERS"
-catid = 1
-image = "<black>FF <green>1111 D <red>1111 D <black>11"
-name = "Like Kong Kong Pair"
-description = "Like kongs and Pair in different suits with matching dragons and flower pair"
+metadata =
+    category = "ANY LIKE NUMBERS"
+    catid = "1"
+    image = "<black>FF <green>1111 D <red>1111 D <black>11"
+    name = "Like Kong Kong Pair"
+    description = "Like kongs and Pair in different suits with matching dragons and flower pair"
 
-Variations:
+Variations = 
 // MTL code defines the set
 // Define suits
 suits = (b, c, d)
