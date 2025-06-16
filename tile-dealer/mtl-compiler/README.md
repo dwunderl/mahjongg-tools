@@ -2,6 +2,23 @@
 
 This compiler processes Mahjong hand templates written in MTL and generates all possible variations of those hands in JSON format.
 
+## Table of Contents
+- [Installation](#installation)
+- [Usage](#usage)
+- [Template Syntax](#template-syntax)
+- [Available Functions](#available-functions)
+- [Testing](#testing)
+- [Development](#development)
+
+## Installation
+
+1. Clone the repository
+2. Install Node.js (v14 or higher)
+3. Install dependencies:
+   ```
+   npm install
+   ```
+
 ## Usage
 
 1. Create a template file in the `templates/` directory with a `.mtl` extension
@@ -9,16 +26,38 @@ This compiler processes Mahjong hand templates written in MTL and generates all 
    ```
    node compile.js templates/your-template.mtl output/output-file.json
    ```
+3. The compiled JSON will be saved to the specified output file
 
 ## Template Syntax
 
-### Metadata
+### Metadata Section
 ```
-category = "Category Name"
-catid = "1a"
-name = "Template Name"
-description = "Template description"
-image = "Visual representation"
+metadata = {
+    category: "Category Name",
+    catid: "1a",           // Must be a string (can include letters)
+    name: "Template Name",
+    description: "Template description",
+    image: "Visual representation"  // Optional
+}
+```
+
+### Variations Section
+```
+Variations:
+    // Define available suits (b=characters, c=circles, d=bamboo)
+    suits = (b, c, d)
+    
+    // Generate variations using loops and tile functions
+    foreach (p in permutations(suits)):
+        s1 = p[0]
+        s2 = p[1]
+        s3 = p[2]
+        
+        // Your hand pattern here
+        pair(9, s1)
+        kong(6, s2)
+        kong(6, s3)
+    End:
 ```
 
 ### Variations
@@ -40,14 +79,7 @@ foreach (p in permutations(suits)):
 End:
 ```
 
-## Available Functions
 
-- `pair(number, suit)`: Add a pair of tiles
-- `pung(number, suit)`: Add a pung (3 of a kind)
-- `kong(number, suit)`: Add a kong (4 of a kind)
-- `single(number, suit)`: Add a single tile
-- `complement(suit, suits)`: Get the other two suits
-- `permutations(array)`: Generate all permutations of an array
 
 ## Output Format
 
