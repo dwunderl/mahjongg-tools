@@ -1,0 +1,14 @@
+metadata = {
+    id: "simple_pair",
+    name: "Simple Pair",
+    description: "A simple pair of 1s in each suit",
+    category: "Basic",
+    catid: "simple_pair"
+}
+
+Variations:
+    suits = (b, c, d)
+    
+    foreach (s in suits):
+        pair(s, 1)
+    end

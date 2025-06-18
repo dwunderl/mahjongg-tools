@@ -1,0 +1,25 @@
+metadata = {
+    id: "sequence_kong_kong",
+    name: "Sequence Kong Kong",
+    description: "Sequence of 5, 2 Kongs matching first number",
+    category: "Consecutive Run",
+    catid: "7",
+    image: "<green>112345 <red>1111 <black>1111"
+}
+
+Variations:
+    suits = (b, c, d)
+    
+    foreach (s1 in suits):
+        s2, s3 = complement(s1, suits)
+        
+        foreach (n in 1..5):
+            pair(n, s1)
+            single(n+1, s1)
+            single(n+2, s1)
+            single(n+3, s1)
+            single(n+4, s1)
+            kong(n, s2)
+            kong(n, s3)
+        end
+    end

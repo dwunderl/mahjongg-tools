@@ -1,0 +1,29 @@
+{
+  "templates": [
+    {
+      "metadata": {
+        "id": "simple_pair",
+        "name": "Simple Pair",
+        "description": "A simple pair of 1s in each suit",
+        "category": "Basic"
+      },
+      "variations": [
+        {
+          "tiles": ["b1", "b1"],
+          "name": "Simple Pair",
+          "description": "Bamboo 1 pair"
+        },
+        {
+          "tiles": ["c1", "c1"],
+          "name": "Simple Pair",
+          "description": "Character 1 pair"
+        },
+        {
+          "tiles": ["d1", "d1"],
+          "name": "Simple Pair",
+          "description": "Dot 1 pair"
+        }
+      ]
+    }
+  ]
+}

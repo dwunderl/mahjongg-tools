@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="6" failures="0" errors="0" time="17.476">
+  <testsuite name="Hand Template Compilation" errors="0" failures="0" skipped="0" timestamp="2025-06-17T23:32:28" time="17.439" tests="6">
+    <testcase classname="Hand Template Compilation compiles hand-templates/like-kong-kong-pair.mtl" name="Hand Template Compilation compiles hand-templates/like-kong-kong-pair.mtl" time="5.022">
+    </testcase>
+    <testcase classname="Hand Template Compilation compiles hand-templates/p3k6p6k9.mtl" name="Hand Template Compilation compiles hand-templates/p3k6p6k9.mtl" time="8.663">
+    </testcase>
+    <testcase classname="Hand Template Compilation compiles hand-templates/sequence-kong-kong.mtl" name="Hand Template Compilation compiles hand-templates/sequence-kong-kong.mtl" time="0.32">
+    </testcase>
+    <testcase classname="Hand Template Compilation compiles hand-templates/simple_pair.mtl" name="Hand Template Compilation compiles hand-templates/simple_pair.mtl" time="3.272">
+    </testcase>
+    <testcase classname="Hand Template Compilation compiles valid/simple.mtl" name="Hand Template Compilation compiles valid/simple.mtl" time="0.039">
+    </testcase>
+    <testcase classname="Hand Template Compilation should find template files" name="Hand Template Compilation should find template files" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>

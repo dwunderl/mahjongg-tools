@@ -1,0 +1,26 @@
+metadata = {
+    id: "p3k6p6k9",
+    name: "Pung of 3, Kong of 6, Pung of 6, Kong of 9",
+    description: "A hand with one pung of 3s, one kong of 6s, one pung of 6s, and one kong of 9s",
+    category: "Standard",
+    catid: "p3k6p6k9"
+}
+
+Variations:
+    suits = (b, c, d)
+    values1 = (3, 6, 9)
+    values2 = (6, 9, 3)
+    
+    foreach (s1 in suits):
+        foreach (v1 in values1):
+            foreach (s2 in suits):
+                foreach (v2 in values2):
+                    if (s1 != s2 or v1 != v2):
+                        pair(s1, 1)
+                        pung(s1, v1)
+                        kong(s2, v2)
+                    end
+                end
+            end
+        end
+    end

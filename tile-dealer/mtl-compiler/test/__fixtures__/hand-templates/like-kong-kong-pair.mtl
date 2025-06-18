@@ -1,0 +1,24 @@
+metadata = {
+    id: "like_kong_kong_pair",
+    name: "Like Kong Kong Pair",
+    description: "Like kongs and Pair in different suits with matching dragons and flower pair",
+    category: "ANY LIKE NUMBERS",
+    catid: "1",
+    image: "<black>FF <green>1111 D <red>1111 D <black>11"
+}
+
+Variations:
+    suits = (b, c, d)
+    
+    foreach (s1 in suits):
+        s2, s3 = complement(s1, suits)
+        
+        foreach (n in 1..9):
+            pair(F)
+            kong(n, s2)
+            single(D, s2)
+            kong(n, s3)
+            single(D, s3)
+            pair(n, s1)
+        end
+    end

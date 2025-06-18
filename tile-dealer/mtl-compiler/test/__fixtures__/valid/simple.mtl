@@ -1,0 +1,13 @@
+metadata = {
+    category: "Test",
+    catid: "test1",
+    name: "Simple Test Template",
+    description: "A simple test template"
+}
+
+Variations:
+    suits = (b, c, d)
+    
+    foreach (s in suits):
+        pair(1, s)
+    End:

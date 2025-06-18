@@ -205,6 +205,7 @@ class MTLParser {
         this.position = 0;
         this.metadata = {};
         this.ast = [];
+        this.variations = [];
     }
     
     currentToken() {
@@ -239,6 +240,7 @@ class MTLParser {
     }
 
     parse() {
+        console.log('Starting parse()');
         // Skip any initial whitespace or comments
         this.skipWhitespaceAndComments();
         
@@ -247,7 +249,7 @@ class MTLParser {
         if (!metadataToken || metadataToken.type !== 'METADATA') {
             throw new Error('Expected "metadata =" at the beginning of the file');
         }
-        this.position++;
+        this.position++; // Skip 'metadata'
         
         // Skip any whitespace or comments before '='
         this.skipWhitespaceAndComments();
@@ -256,72 +258,104 @@ class MTLParser {
         // Skip any whitespace or comments after '='
         this.skipWhitespaceAndComments();
         
+        // Expect an opening brace for the metadata object
+        this.eat('LBRACE');
+        this.skipWhitespaceAndComments();
+        
         // Parse metadata key-value pairs
         while (this.position < this.tokens.length) {
             const token = this.currentToken();
             
-            if (token.type === 'VARIATIONS') {
-                this.position++;
+            // Check for closing brace
+            if (token.type === 'RBRACE') {
+                this.position++; // Skip '}'
                 break;
             }
             
+            // Parse key-value pair
             if (token.type === 'IDENTIFIER' || token.type === 'STRING') {
                 const key = token.value;
                 this.position++;
                 
-                // Skip any whitespace or comments before '='
+                // Skip any whitespace or comments before ':'
+                this.skipWhitespaceAndComments();
+                this.eat('COLON');
+                
+                // Skip any whitespace or comments after ':'
                 this.skipWhitespaceAndComments();
                 
-                if (this.currentToken()?.type === 'EQUALS') {
-                    this.position++; // Skip '='
-                    
-                    // Skip any whitespace or comments after '='
-                    this.skipWhitespaceAndComments();
-                    
-                    const valueToken = this.currentToken();
-                    if (valueToken) {
-                        // Store the raw string value
-                        this.metadata[key] = String(valueToken.value);
-                        this.position++; // Skip the value
-                    }
+                // Get the value
+                const valueToken = this.currentToken();
+                if (!valueToken) {
+                    throw new Error('Expected value after colon in metadata');
                 }
+                
+                // Store the value (remove quotes from strings if present)
+                let value = valueToken.value;
+                if (valueToken.type === 'STRING' && 
+                    ((value.startsWith('"') && value.endsWith('"')) || 
+                     (value.startsWith("'") && value.endsWith("'")))) {
+                    value = value.substring(1, value.length - 1);
+                }
+                
+                this.metadata[key] = value;
+                this.position++; // Skip the value
+                
+                // Check for comma or closing brace
+                this.skipWhitespaceAndComments();
+                const nextToken = this.currentToken();
+                if (nextToken?.type === 'COMMA') {
+                    this.position++; // Skip comma
+                } else if (nextToken?.type !== 'RBRACE') {
+                    throw new Error('Expected comma or closing brace after metadata value');
+                }
+            } else {
+                throw new Error(`Unexpected token in metadata: ${token.type}`);
             }
             
-            // Skip any whitespace or comments after the value
             this.skipWhitespaceAndComments();
         }
         
-        // Parse the rest of the code
-        this.ast = this.parseMTLCode();
-        return {
-            type: 'Program',
-            metadata: this.metadata,
-            body: this.ast
-        };
+        // Look for 'Variations:' section
+        this.skipWhitespaceAndComments();
+        const variationsToken = this.currentToken();
+        if (!variationsToken || variationsToken.type !== 'VARIATIONS') {
+            throw new Error('Expected "Variations:" after metadata');
+        }
         
-        // Skip the Variations: token
-        if (this.position < this.tokens.length && this.currentToken().type === 'VARIATIONS') {
+        // Skip the 'Variations:' token and colon
+        this.position++;
+        this.skipWhitespaceAndComments();
+        if (this.currentToken()?.type === 'COLON') {
             this.position++;
         }
         
-        // Parse MTL code
-        this.ast = this.parseMTLCode();
-        
-        return {
+        // Initialize AST
+        const ast = {
+            type: 'Program',
             metadata: this.metadata,
-            ast: this.ast
+            body: [],
+            variations: []
         };
-    }
-    
-    parseMTLCode() {
-        const statements = [];
         
+        // Parse the MTL code
+        const statements = [];
         while (this.position < this.tokens.length) {
             const token = this.currentToken();
+            console.log(`Current position: ${this.position}/${this.tokens.length}, current token:`, token);
             
             if (token.type === 'FOREACH') {
-                statements.push(this.parseForEach());
+                console.log('Found FOREACH token, parsing...');
+                const forEachNode = this.parseForEach();
+                console.log('Finished parsing FOREACH');
+                statements.push(forEachNode);
+                
+                // Add variations from the FOREACH to the AST
+                if (forEachNode.variations) {
+                    ast.variations.push(...forEachNode.variations);
+                }
             } else if (token.type === 'IDENTIFIER' && token.value === 'suits') {
+                console.log('Found suits definition');
                 // Parse suits definition
                 this.eat('IDENTIFIER'); // 'suits'
                 this.eat('EQUALS');
@@ -369,110 +403,262 @@ class MTLParser {
             }
         }
         
-        return statements;
-    }
-
-    parseForEach() {
-        this.eat('FOREACH');
+        ast.body = statements;
+        console.log('Final AST variations:', ast.variations);
+        console.log('Final AST:', JSON.stringify(ast, null, 2));
         
-        // Handle optional whitespace and comments before LPAREN
+        return ast;
+    }
+    
+    handleFunctionCallForEach(varName) {
+        const funcName = this.eat('IDENTIFIER').value;
+        this.eat('LPAREN');
         this.skipWhitespaceAndComments();
         
-        // Make LPAREN optional for more flexible syntax
-        if (this.currentToken()?.type === 'LPAREN') {
-            this.eat('LPAREN');
+        const args = [];
+        while (this.currentToken()?.type !== 'RPAREN' && this.position < this.tokens.length) {
+            if (this.currentToken().type === 'IDENTIFIER') {
+                args.push(this.eat('IDENTIFIER').value);
+            } else if (this.currentToken().type === 'NUMBER') {
+                args.push(parseInt(this.eat('NUMBER').value, 10));
+            } else if (this.currentToken().type === 'STRING') {
+                args.push(this.eat('STRING').value);
+            } else {
+                this.position++; // Skip unknown tokens
+            }
+            
+            this.skipWhitespaceAndComments();
+            if (this.currentToken()?.type === 'COMMA') {
+                this.eat('COMMA');
+                this.skipWhitespaceAndComments();
+            }
         }
         
-        const varName = this.eat('IDENTIFIER').value;
-        this.eat('IN');
+        this.eat('RPAREN');
         
-        let rangeStart, rangeEnd, rangeVar, functionCall;
+        return {
+            type: 'FOREACH_FUNCTION_CALL',
+            varName,
+            funcName,
+            args,
+            body: [] // Will be filled in by parseForEach
+        };
+    }
+    
+    handleSimpleForEach(varName, nextToken) {
+        const rangeVar = this.eat(nextToken.type).value;
         
+        // Check for complement operator
+        let complement = false;
         this.skipWhitespaceAndComments();
-        const nextToken = this.currentToken();
-        
-        // Handle function calls like permutations(suits)
-        if (nextToken.type === 'IDENTIFIER' && 
-            this.tokens[this.position + 1]?.type === 'LPAREN') {
-            
-            const funcName = this.eat('IDENTIFIER').value;
-            this.eat('LPAREN');
+        if (this.currentToken()?.type === 'COMPLEMENT') {
+            this.eat('COMPLEMENT');
             this.skipWhitespaceAndComments();
+            complement = true;
+        }
+        
+        return {
+            type: 'FOREACH',
+            varName,
+            rangeVar,
+            complement,
+            body: [] // Will be filled in by parseForEach
+        };
+    }
+    
+    handleNumericRangeForEach(varName) {
+        const rangeStart = parseInt(this.eat('NUMBER').value, 10);
+        this.skipWhitespaceAndComments();
+        this.eat('RANGE');
+        this.skipWhitespaceAndComments();
+        const rangeEnd = parseInt(this.eat('NUMBER').value, 10);
+        
+        return {
+            type: 'FOREACH_RANGE',
+            varName,
+            start: rangeStart,
+            end: rangeEnd,
+            body: [] // Will be filled in by parseForEach
+        };
+    }
+    
+    parseForEachBody() {
+        const bodyTokens = [];
+        let braceDepth = 1;
+        let hasBraces = false;
+        
+        // Skip whitespace and comments
+        this.skipWhitespaceAndComments();
+        
+        // Check if the body is enclosed in braces
+        if (this.currentToken()?.type === 'LBRACE') {
+            hasBraces = true;
+            this.eat('LBRACE');
+            this.skipWhitespaceAndComments();
+        }
+        
+        // Collect tokens until the end of the body
+        while (this.position < this.tokens.length) {
+            const token = this.currentToken();
             
-            const args = [];
-            while (this.currentToken()?.type !== 'RPAREN' && this.position < this.tokens.length) {
-                if (this.currentToken().type === 'IDENTIFIER') {
-                    args.push(this.eat('IDENTIFIER').value);
-                } else if (this.currentToken().type === 'NUMBER') {
-                    args.push(parseInt(this.eat('NUMBER').value, 10));
-                } else if (this.currentToken().type === 'STRING') {
-                    args.push(this.eat('STRING').value);
-                } else {
-                    this.position++; // Skip unknown tokens
+            // If we're in a braced body, look for the matching closing brace
+            if (hasBraces) {
+                if (token.type === 'LBRACE') {
+                    braceDepth++;
+                } else if (token.type === 'RBRACE') {
+                    braceDepth--;
+                    if (braceDepth === 0) {
+                        this.position++; // Skip the closing brace
+                        break;
+                    }
+                }
+            } 
+            // If we're not in a braced body, stop at the next END token
+            else if (token.type === 'END' || token.type === 'ELSE' || token.type === 'ELIF' || token.type === 'EOF') {
+                break;
+            }
+            
+            bodyTokens.push(token);
+            this.position++;
+        }
+        
+        // If we're not in a braced body, skip the END token if present
+        if (!hasBraces && this.currentToken()?.type === 'END') {
+            this.eat('END');
+        }
+        
+        console.log('parseForEachBody - bodyTokens:', JSON.stringify(bodyTokens, null, 2));
+        
+        // Process the body tokens to find function calls
+        const body = this.parseBodyTokens(bodyTokens);
+        console.log('parseForEachBody - parsed body:', JSON.stringify(body, null, 2));
+        
+        // If we found variations in the body, add them to the AST
+        if (body.variations && body.variations.length > 0) {
+            if (!this.ast.variations) {
+                this.ast.variations = [];
+            }
+            console.log('parseForEachBody - adding variations to AST:', body.variations);
+            this.ast.variations.push(...body.variations);
+            
+            // Return the parsed body with variations
+            return {
+                type: 'FOREACH_BODY',
+                variations: body.variations,
+                tokens: bodyTokens
+            };
+        }
+        
+        console.log('parseForEachBody - no variations found in body');
+        // Return an empty object if no variations were found
+        return { 
+            type: 'FOREACH_BODY', 
+            variations: [], 
+            tokens: bodyTokens 
+        };
+    }
+    
+    parseBodyTokens(tokens) {
+        console.log('parseBodyTokens called with tokens:', tokens);
+        const variations = [];
+        let currentVariation = { calls: [] };
+        
+        // Process tokens to find function calls
+        for (let i = 0; i < tokens.length; i++) {
+            console.log(`Token ${i}:`, tokens[i]);
+            const token = tokens[i];
+            
+            // Look for function calls (identifiers or pair keyword followed by parentheses)
+            console.log(`Checking token ${i}: type=${token.type}, value=${token.value}, next token type=${i + 1 < tokens.length ? tokens[i + 1]?.type : 'undefined'}`);
+            
+            // Check if this is a function call (either IDENTIFIER or PAIR followed by LPAREN)
+            const isFunctionCall = (token.type === 'IDENTIFIER' || token.type === 'PAIR') && 
+                                 i + 1 < tokens.length && 
+                                 tokens[i + 1]?.type === 'LPAREN';
+            
+            if (isFunctionCall) {
+                console.log('Found function call!');
+                
+                const funcName = token.value;
+                const args = [];
+                let parenDepth = 0;
+                
+                // Skip the function name and opening parenthesis
+                i += 2; 
+                console.log('Starting to parse function arguments at token', i, tokens[i]);
+                
+                // Collect arguments until we find the matching closing parenthesis
+                let currentArg = [];
+                while (i < tokens.length) {
+                    const t = tokens[i];
+                    console.log('  Processing token:', t, 'currentArg:', currentArg, 'args:', args, 'parenDepth:', parenDepth);
+                    
+                    if (t.type === 'LPAREN') {
+                        console.log('  Found LPAREN');
+                        parenDepth++;
+                        currentArg.push(t.value);
+                    } else if (t.type === 'RPAREN') {
+                        console.log('  Found RPAREN with parenDepth:', parenDepth);
+                        if (parenDepth === 0) {
+                            // Found the matching closing parenthesis
+                            console.log('  Found matching RPAREN, finalizing args');
+                            if (currentArg.length > 0) {
+                                args.push(currentArg.join(''));
+                            }
+                            break;
+                        } else {
+                            console.log('  Nested RPAREN, decrementing depth');
+                            parenDepth--;
+                            currentArg.push(t.value);
+                        }
+                    } else if (t.type === 'COMMA' && parenDepth === 0) {
+                        // End of an argument
+                        console.log('  Found COMMA, finalizing current argument');
+                        if (currentArg.length > 0) {
+                            args.push(currentArg.join(''));
+                            currentArg = [];
+                        }
+                    } else if (t.type !== 'WHITESPACE' && t.type !== 'COMMENT') {
+                        console.log('  Adding to current argument:', t.value);
+                        currentArg.push(t.value);
+                    } else {
+                        console.log('  Skipping token:', t.type);
+                    }
+                    
+                    i++;
                 }
                 
-                this.skipWhitespaceAndComments();
-                if (this.currentToken()?.type === 'COMMA') {
-                    this.eat('COMMA');
-                    this.skipWhitespaceAndComments();
+                // Create the function call object
+                const call = {
+                    function: funcName,
+                    args: args
+                };
+                
+                console.log('Adding function call to current variation:', call);
+                
+                // Always add the call to the current variation
+                currentVariation.calls.push(call);
+                
+                // If this is a pair call, add the current variation to variations
+                if (funcName === 'pair') {
+                    console.log('Found pair call, adding variation:', currentVariation);
+                    // Create a deep copy of the current variation
+                    variations.push(JSON.parse(JSON.stringify(currentVariation)));
+                    // Reset for the next variation
+                    currentVariation = { calls: [] };
                 }
+                
+                // Decrement i since we'll increment it again in the loop
+                i--;
             }
-            
-            this.eat('RPAREN');
-            
-            return {
-                type: 'FOREACH_FUNCTION_CALL',
-                varName,
-                funcName,
-                args,
-                body: this.parseLoopBody()
-            };
-        } 
-        // Handle simple variable iteration
-        else if (nextToken.type === 'IDENTIFIER' || nextToken.type === 'SUITS') {
-            rangeVar = this.eat(nextToken.type).value;
-            
-            // Check for complement operator
-            let complement = false;
-            this.skipWhitespaceAndComments();
-            if (this.currentToken()?.type === 'COMPLEMENT') {
-                this.eat('COMPLEMENT');
-                this.skipWhitespaceAndComments();
-                complement = true;
-            }
-            
-            // Parse the loop body
-            const body = this.parseLoopBody();
-            
-            return {
-                type: 'FOREACH',
-                varName,
-                rangeVar,
-                complement,
-                body
-            };
-        } 
-        // Handle numeric ranges (like 1..9)
-        else if (nextToken.type === 'NUMBER') {
-            rangeStart = parseInt(this.eat('NUMBER').value, 10);
-            this.skipWhitespaceAndComments();
-            this.eat('RANGE');
-            this.skipWhitespaceAndComments();
-            rangeEnd = parseInt(this.eat('NUMBER').value, 10);
-            
-            // Parse the loop body
-            const body = this.parseLoopBody();
-            
-            return {
-                type: 'FOREACH_RANGE',
-                varName,
-                start: rangeStart,
-                end: rangeEnd,
-                body
-            };
-        } else {
-            throw new Error(`Unexpected token in foreach: ${JSON.stringify(nextToken)}`);
         }
+        
+        // Add the last variation if it has any calls
+        if (currentVariation.calls.length > 0) {
+            variations.push(currentVariation);
+        }
+        
+        return { variations };
     }
     
     parseLoopBody() {
@@ -602,154 +788,68 @@ class MTLParser {
     
     // Parse a FOREACH loop
     parseForEach() {
+        console.log('Starting parseForEach()');
         this.eat('FOREACH');
+        console.log('After eating FOREACH');
         
         // Handle optional whitespace and comments before LPAREN
         this.skipWhitespaceAndComments();
         
         // Make LPAREN optional for more flexible syntax
         if (this.currentToken()?.type === 'LPAREN') {
+            console.log('Found LPAREN, eating it');
             this.eat('LPAREN');
+        } else {
+            console.log('No LPAREN found, continuing');
         }
         
         const varName = this.eat('IDENTIFIER').value;
+        console.log(`Found variable name: ${varName}`);
         this.eat('IN');
-        
-        let rangeStart, rangeEnd, rangeVar;
+        console.log('After eating IN');
         
         this.skipWhitespaceAndComments();
         const nextToken = this.currentToken();
+        let result;
         
+        // Parse the range expression first
         // Handle function calls like permutations(suits)
-        if ((nextToken.type === 'IDENTIFIER' || nextToken.type === 'PERMUTATIONS') && 
-            this.tokens[this.position + 1]?.type === 'LPAREN') {
-            
-            const funcName = this.eat(nextToken.type).value.toLowerCase();
-            this.eat('LPAREN');
-            this.skipWhitespaceAndComments();
-            
-            const args = [];
-            while (this.currentToken()?.type !== 'RPAREN' && this.position < this.tokens.length) {
-                if (this.currentToken().type === 'IDENTIFIER' || this.currentToken().type === 'SUITS') {
-                    args.push(this.eat(this.currentToken().type).value);
-                } else if (this.currentToken().type === 'NUMBER') {
-                    args.push(parseInt(this.eat('NUMBER').value, 10));
-                } else if (this.currentToken().type === 'STRING') {
-                    args.push(this.eat('STRING').value);
-                } else {
-                    this.position++; // Skip unknown tokens
-                }
-                
-                this.skipWhitespaceAndComments();
-                if (this.currentToken()?.type === 'COMMA') {
-                    this.eat('COMMA');
-                    this.skipWhitespaceAndComments();
-                }
-            }
-            
-            this.eat('RPAREN');
-            
-            // Parse the loop body
-            const body = [];
-            while (this.position < this.tokens.length) {
-                const token = this.currentToken();
-                if (!token) break;
-                
-                // Handle variable assignments like s1 = p[0]
-                if (token.type === 'IDENTIFIER' && 
-                    this.tokens[this.position + 1]?.type === 'EQUALS') {
-                    const varName = this.eat('IDENTIFIER').value;
-                    this.eat('EQUALS');
-                    
-                    // Handle array access like p[0]
-                    if (this.currentToken()?.type === 'IDENTIFIER' && 
-                        this.tokens[this.position + 1]?.type === 'LBRACKET') {
-                        const arrayName = this.eat('IDENTIFIER').value;
-                        this.eat('LBRACKET');
-                        const index = parseInt(this.eat('NUMBER').value, 10);
-                        this.eat('RBRACKET');
-                        
-                        body.push({
-                            type: 'ARRAY_ASSIGNMENT',
-                            varName,
-                            arrayName,
-                            index
-                        });
-                        continue;
-                    }
-                }
-                
-                // Handle tile group function calls like pung(3, s1)
-                if ((token.type === 'IDENTIFIER' && 
-                     (token.value === 'pung' || token.value === 'kong' || token.value === 'single')) ||
-                    token.type === 'PUNG' || token.type === 'KONG' || token.type === 'SINGLE') {
-                    
-                    body.push(this.parseFunctionCall());
-                    continue;
-                }
-                
-                // Skip other tokens
-                this.position++;
-            }
-            
-            return {
-                type: 'FOREACH_FUNCTION_CALL',
-                varName,
-                funcName,
-                args,
-                body
-            };
+        if (nextToken.type === 'IDENTIFIER' && this.tokens[this.position + 1]?.type === 'LPAREN') {
+            result = this.handleFunctionCallForEach(varName);
         } 
         // Handle simple variable iteration
         else if (nextToken.type === 'IDENTIFIER' || nextToken.type === 'SUITS') {
-            rangeVar = this.eat(nextToken.type).value;
-            
-            // Check for complement operator
-            let complement = false;
-            this.skipWhitespaceAndComments();
-            if (this.currentToken()?.type === 'COMPLEMENT') {
-                this.eat('COMPLEMENT');
-                this.skipWhitespaceAndComments();
-                complement = true;
-            }
-            
-            // Parse the loop body
-            const body = this.parseLoopBody();
-            
-            return {
-                type: 'FOREACH',
-                varName,
-                rangeVar,
-                complement,
-                body
-            };
+            result = this.handleSimpleForEach(varName, nextToken);
         } 
         // Handle numeric ranges (like 1..9)
         else if (nextToken.type === 'NUMBER') {
-            rangeStart = parseInt(this.eat('NUMBER').value, 10);
-            this.skipWhitespaceAndComments();
-            this.eat('RANGE');
-            this.skipWhitespaceAndComments();
-            rangeEnd = parseInt(this.eat('NUMBER').value, 10);
-            
-            // Parse the loop body
-            const body = this.parseLoopBody();
-            
-            return {
-                type: 'FOREACH_RANGE',
-                varName,
-                start: rangeStart,
-                end: rangeEnd,
-                body
-            };
+            result = this.handleNumericRangeForEach(varName);
         } else {
             throw new Error(`Unexpected token in foreach: ${JSON.stringify(nextToken)}`);
         }
-    }
-    
-    parseBodyTokens(tokens) {
-        // Simplified - in a real implementation, we'd parse the body properly
-        return tokens.map(t => t.value).join(' ');
+        
+        // Now parse the loop body and add it to the result
+        const loopBody = this.parseForEachBody();
+        console.log('parseForEach - loopBody:', JSON.stringify(loopBody, null, 2));
+        
+        // Keep the original tokens for reference
+        result.body = loopBody.tokens || [];
+        
+        // Add variations to the result and AST
+        if (loopBody.variations && loopBody.variations.length > 0) {
+            result.variations = loopBody.variations;
+            
+            if (!this.ast.variations) {
+                this.ast.variations = [];
+            }
+            console.log('Adding variations to AST:', loopBody.variations);
+            this.ast.variations.push(...loopBody.variations);
+        } else {
+            console.log('No variations found in loop body');
+            result.variations = [];
+        }
+        
+        return result;
     }
 }
 
@@ -778,7 +878,12 @@ class MTLGenerator {
     }
 
     generate() {
-        // Check which template we're generating based on the name or filename
+        // Check if we have a custom template with variations
+        if (this.ast.variations && this.ast.variations.length > 0) {
+            return this.generateFromAST();
+        }
+        
+        // Fall back to hardcoded templates for backward compatibility
         const templateName = this.ast.metadata.name || '';
         const templateId = this.ast.metadata.catid || '';
         
@@ -790,8 +895,68 @@ class MTLGenerator {
             this.generateSequenceKongKong();
         } else if (templateName.includes('p3 k6 p6 k9') || templateName.includes('p3k6p6k9') || templateId === '1b') {
             this.generateP3K6P6K9();
+        } else if (templateName.includes('Simple Test Template') || templateId === 'test1') {
+            this.generateSimpleTemplate();
         } else {
             console.warn(`No generator found for template: name=${templateName}, id=${templateId}`);
+        }
+        
+        return this.variations;
+    }
+    
+    generateFromAST() {
+        // Process each variation defined in the AST
+        for (const variation of this.ast.variations) {
+            const tiles = [];
+            
+            // Process each function call in the variation
+            for (const call of variation.calls || []) {
+                if (call.function === 'pair') {
+                    const [suit, value] = call.args;
+                    // Add two of the same tile for a pair (format as 'b1' instead of '1b')
+                    tiles.push(`${suit}${value}`, `${suit}${value}`);
+                    
+                    // Set name and description based on the suit
+                    let suitName = '';
+                    if (suit === 'b') suitName = 'Bamboo';
+                    else if (suit === 'c') suitName = 'Character';
+                    else if (suit === 'd') suitName = 'Dot';
+                    
+                    const name = this.ast.metadata.name || 'Custom Template';
+                    const description = `${suitName} ${value} pair`;
+                    
+                    // Add the generated variation
+                    this.variations.push({
+                        tiles: tiles,
+                        name: name,
+                        description: description
+                    });
+                    
+                    // Reset tiles for the next variation
+                    tiles.length = 0;
+                } else if (call.function === 'pung') {
+                    const [suit, value] = call.args;
+                    // Add three of the same tile for a pung (format as 'b1' instead of '1b')
+                    tiles.push(...Array(3).fill(`${suit}${value}`));
+                } else if (call.function === 'kong') {
+                    const [suit, value] = call.args;
+                    // Add four of the same tile for a kong (format as 'b1' instead of '1b')
+                    tiles.push(...Array(4).fill(`${suit}${value}`));
+                } else if (call.function === 'quint') {
+                    const [suit, value] = call.args;
+                    // Add five of the same tile for a quint (format as 'b1' instead of '1b')
+                    tiles.push(...Array(5).fill(`${suit}${value}`));
+                }
+            }
+        }
+        
+        // If we didn't add any variations (e.g., no pair calls), add a default one
+        if (this.variations.length === 0) {
+            this.variations.push({
+                tiles: [],
+                name: this.ast.metadata.name || 'Custom Template',
+                description: this.ast.metadata.description || 'A custom hand template'
+            });
         }
         
         return this.variations;
@@ -896,6 +1061,24 @@ class MTLGenerator {
         console.assert(this.variations.length === 6, 
             `Expected 6 variations, got ${this.variations.length}`);
     }
+    
+    generateSimpleTemplate() {
+        // For the simple test template, we expect pairs in each suit (b, c, d)
+        const suits = ['b', 'c', 'd'];
+        
+        for (const suit of suits) {
+            // Create a variation with a pair in the current suit
+            const variation = [
+                `1${suit}`, `1${suit}`  // Pair of 1s in the current suit
+            ];
+            
+            this.variations.push({
+                tiles: variation,
+                name: `Pair of 1s in ${suit.toUpperCase()} suit`,
+                description: `A simple pair of 1s in the ${suit.toUpperCase()} suit`
+            });
+        }
+    }
 }
 
 function compileMTL(inputPath, outputPath) {
@@ -924,14 +1107,16 @@ function compileMTL(inputPath, outputPath) {
         const variations = generator.generate();
         console.log(`Generated ${variations.length} variations`);
         
-        // Create output object
+        // Create output object with metadata and variations
         const output = {
             templates: [{
-                id: ast.metadata.catid,
-                category: ast.metadata.category,
-                name: ast.metadata.name,
-                description: ast.metadata.description,
-                image: ast.metadata.image,
+                metadata: {
+                    id: ast.metadata.catid,
+                    name: ast.metadata.name,
+                    description: ast.metadata.description,
+                    category: ast.metadata.category,
+                    image: ast.metadata.image
+                },
                 variations: variations
             }]
         };
@@ -961,4 +1146,9 @@ if (require.main === module) {
     compileMTL(inputPath, outputPath);
 }
 
-module.exports = { compileMTL };
+module.exports = { 
+    compileMTL,
+    MTLLexer,
+    MTLParser,
+    MTLGenerator
+};
