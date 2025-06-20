@@ -1,19 +1,8 @@
 {
   "templates": [
     {
-      "metadata": {
-        "id": "simple_pair",
-        "name": "Simple Pair",
-        "description": "A simple pair of 1s in each suit",
-        "category": "Basic"
-      },
-      "variations": [
-        {
-          "tiles": [],
-          "name": "Simple Pair",
-          "description": " 1 pair"
-        }
-      ]
+      "metadata": {},
+      "variations": []
     }
   ]
 }

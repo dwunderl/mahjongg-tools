@@ -1,12 +1,11 @@
 {
   "templates": [
     {
-      "id": "p3k6p6k9",
-      "name": "p3 k6 p6 k9 in 3 suits",
-      "description": "Pung of 3s, Kong of 6s, Pung of 6s, and Kong of 9s in three different suits",
-      "category": "369",
-      "catid": "1b",
-      "image": "<green>333 6666 <red>666 <black>9999",
+      "id": "simple_pair",
+      "name": "Simple Pair",
+      "description": "A simple pair of 1s in each suit",
+      "category": "Basic",
+      "catid": "simple_pair",
       "variations": [
         [
           "F",

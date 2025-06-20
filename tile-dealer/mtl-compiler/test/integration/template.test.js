@@ -14,8 +14,8 @@ describe('Template Integration Tests', () => {
         
         const template = output.templates[0];
         
-        // Verify metadata
-        expect(template).toMatchObject({
+        // Verify metadata is in the metadata property
+        expect(template.metadata).toMatchObject({
             category: 'Test',
             id: 'test1',
             name: 'Simple Test Template',

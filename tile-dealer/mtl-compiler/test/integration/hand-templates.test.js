@@ -1,7 +1,7 @@
 const { FIXTURES_DIR, OUTPUT_DIR } = require('../test-utils');
 const path = require('path');
 const fs = require('fs');
-const { compileMTL } = require('../../compile');
+const { compileMTL } = require('../../clean-compiler');
 
 // Helper function to get all .mtl files in a directory recursively
 function findMTLFiles(dir, fileList = []) {

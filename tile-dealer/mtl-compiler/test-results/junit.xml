@@ -1,15 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="6" failures="0" errors="0" time="17.476">
-  <testsuite name="Hand Template Compilation" errors="0" failures="0" skipped="0" timestamp="2025-06-17T23:32:28" time="17.439" tests="6">
-    <testcase classname="Hand Template Compilation compiles hand-templates/like-kong-kong-pair.mtl" name="Hand Template Compilation compiles hand-templates/like-kong-kong-pair.mtl" time="5.022">
+<testsuites name="jest tests" tests="6" failures="5" errors="0" time="1.207">
+  <testsuite name="Hand Template Compilation" errors="0" failures="5" skipped="0" timestamp="2025-06-19T17:56:12" time="1.169" tests="6">
+    <testcase classname="Hand Template Compilation compiles hand-templates/like-kong-kong-pair.mtl" name="Hand Template Compilation compiles hand-templates/like-kong-kong-pair.mtl" time="0.195">
+      <failure>Error: Expected &apos;}&apos; after metadata section, got EQUALS
+    at MTLParser.parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1343:19)
+    at parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1428:28)
+    at Object.compileMTL (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/test/integration/hand-templates.test.js:62:28)
+    at Promise.then.completed (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Hand Template Compilation compiles hand-templates/p3k6p6k9.mtl" name="Hand Template Compilation compiles hand-templates/p3k6p6k9.mtl" time="8.663">
+    <testcase classname="Hand Template Compilation compiles hand-templates/p3k6p6k9.mtl" name="Hand Template Compilation compiles hand-templates/p3k6p6k9.mtl" time="0.012">
+      <failure>Error: Expected &apos;}&apos; after metadata section, got EQUALS
+    at MTLParser.parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1343:19)
+    at parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1428:28)
+    at Object.compileMTL (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/test/integration/hand-templates.test.js:62:28)
+    at Promise.then.completed (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Hand Template Compilation compiles hand-templates/sequence-kong-kong.mtl" name="Hand Template Compilation compiles hand-templates/sequence-kong-kong.mtl" time="0.32">
+    <testcase classname="Hand Template Compilation compiles hand-templates/sequence-kong-kong.mtl" name="Hand Template Compilation compiles hand-templates/sequence-kong-kong.mtl" time="0.012">
+      <failure>Error: Expected &apos;}&apos; after metadata section, got EQUALS
+    at MTLParser.parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1343:19)
+    at parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1428:28)
+    at Object.compileMTL (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/test/integration/hand-templates.test.js:62:28)
+    at Promise.then.completed (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Hand Template Compilation compiles hand-templates/simple_pair.mtl" name="Hand Template Compilation compiles hand-templates/simple_pair.mtl" time="3.272">
+    <testcase classname="Hand Template Compilation compiles hand-templates/simple_pair.mtl" name="Hand Template Compilation compiles hand-templates/simple_pair.mtl" time="0.013">
+      <failure>Error: Expected &apos;}&apos; after metadata section, got EQUALS
+    at MTLParser.parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1343:19)
+    at parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1428:28)
+    at Object.compileMTL (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/test/integration/hand-templates.test.js:62:28)
+    at Promise.then.completed (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="Hand Template Compilation compiles valid/simple.mtl" name="Hand Template Compilation compiles valid/simple.mtl" time="0.039">
+    <testcase classname="Hand Template Compilation compiles valid/simple.mtl" name="Hand Template Compilation compiles valid/simple.mtl" time="0.01">
+      <failure>Error: Expected &apos;}&apos; after metadata section, got EQUALS
+    at MTLParser.parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1343:19)
+    at parse (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/clean-compiler.js:1428:28)
+    at Object.compileMTL (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/test/integration/hand-templates.test.js:62:28)
+    at Promise.then.completed (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:126:9)
+    at _runTestsForDescribeBlock (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:121:9)
+    at run (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:367:16)
+    at runTest (/Users/danawunderlich/MyProjects/MahjonggTools/tile-dealer/mtl-compiler/node_modules/jest-runner/build/runTest.js:444:34)</failure>
     </testcase>
     <testcase classname="Hand Template Compilation should find template files" name="Hand Template Compilation should find template files" time="0.001">
     </testcase>

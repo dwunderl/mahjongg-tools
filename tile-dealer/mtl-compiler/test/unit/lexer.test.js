@@ -1,4 +1,4 @@
-const { MTLLexer } = require('../../compile');
+const { MTLLexer } = require('../../clean-compiler');
 
 describe('MTL Lexer', () => {
     // Helper function to filter out whitespace tokens
@@ -13,7 +13,7 @@ describe('MTL Lexer', () => {
     // Helper function to get token values
     const getTokenValues = (tokens) => tokens.map(t => t.value);
     test('tokenizes metadata section', () => {
-        const input = 'metadata = { category: "Test" }';
+        const input = 'metadata = { category = "Test" }';
         const tokens = tokenize(input);
         
         expect(tokens[0]).toMatchObject({
@@ -28,7 +28,7 @@ describe('MTL Lexer', () => {
             type: 'IDENTIFIER',
             value: 'category'
         });
-        expect(tokens[4].type).toBe('COLON');
+        expect(tokens[4].type).toBe('EQUALS');
         expect(tokens[5]).toMatchObject({
             type: 'STRING',
             value: 'Test'
@@ -77,20 +77,20 @@ describe('MTL Lexer', () => {
     });
     
     test('tokenizes special characters', () => {
-        const input = '(){}[],:=';
+        const input = '(){}[],=';
         const tokens = tokenize(input);
         
         expect(getTokenTypes(tokens)).toEqual([
             'LPAREN', 'RPAREN',
             'LBRACE', 'RBRACE',
             'LBRACKET', 'RBRACKET',
-            'COMMA', 'COLON',
+            'COMMA',
             'EQUALS'
         ]);
     });
     
     test('handles comments', () => {
-        const input = '// This is a comment\nmetadata = { category: "Test" } // Another comment';
+        const input = '// This is a comment\nmetadata = { category = "Test" } // Another comment';
         const tokens = tokenize(input);
         
         // First non-comment token should be METADATA
@@ -107,8 +107,8 @@ describe('MTL Lexer', () => {
     
     test('handles multiline input', () => {
         const input = `metadata = {
-            category: "Test",
-            name: "Multiline Test"
+            category = "Test"
+            name = "Multiline Test"
         }`;
         const tokens = tokenize(input);
         
@@ -116,17 +116,17 @@ describe('MTL Lexer', () => {
         expect(tokens[1].type).toBe('EQUALS');
         expect(tokens[2].type).toBe('LBRACE');
         expect(tokens[3].type).toBe('IDENTIFIER');
-        expect(tokens[4].type).toBe('COLON');
+        expect(tokens[4].type).toBe('EQUALS');
         expect(tokens[5].type).toBe('STRING');
-        expect(tokens[6].type).toBe('COMMA');
-        expect(tokens[7].type).toBe('IDENTIFIER');
-        expect(tokens[8].type).toBe('COLON');
-        expect(tokens[9].type).toBe('STRING');
-        expect(tokens[10].type).toBe('RBRACE');
+        // No comma expected since we're using newline as separator
+        expect(tokens[6].type).toBe('IDENTIFIER');
+        expect(tokens[7].type).toBe('EQUALS');
+        expect(tokens[8].type).toBe('STRING');
+        expect(tokens[9].type).toBe('RBRACE');
     });
 
     test('tokenizes foreach loop', () => {
-        const input = 'foreach (s in suits):';
+        const input = 'foreach (s in suits)';
         const tokens = tokenize(input);
         
         expect(tokens[0]).toMatchObject({
@@ -144,7 +144,7 @@ describe('MTL Lexer', () => {
             value: 'suits'
         });
         expect(tokens[5].type).toBe('RPAREN');
-        expect(tokens[6].type).toBe('COLON');
+        // No EQUALS token expected after RPAREN in foreach
     });
     
     test('tokenizes tile functions with parameters', () => {
@@ -232,7 +232,7 @@ describe('MTL Lexer', () => {
     });
     
     test('handles complex expressions', () => {
-        const input = 'metadata = { name: "Complex Test", category: "Test" }\n' +
+        const input = 'metadata = { name = "Complex Test" category = "Test" }\n' +
                      'suits = (b, c, d, 1, 2, 3, 4, 5, 6, 7, 8, 9, e, s, w, n, h, r, o)\n';
         
         const tokens = tokenize(input);
@@ -240,7 +240,7 @@ describe('MTL Lexer', () => {
         
         // Verify we have all expected token types from the first part
         const expectedTokenTypes = [
-            'METADATA', 'EQUALS', 'LBRACE', 'IDENTIFIER', 'COLON', 'STRING', 'COMMA', 'RBRACE',
+            'METADATA', 'EQUALS', 'LBRACE', 'IDENTIFIER', 'EQUALS', 'STRING', 'IDENTIFIER', 'EQUALS', 'STRING', 'RBRACE',
             'SUITS', 'LPAREN', 'RPAREN', 'NUMBER'
         ];
         

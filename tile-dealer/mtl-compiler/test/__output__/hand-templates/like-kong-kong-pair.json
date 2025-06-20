@@ -1,25 +1,8 @@
 {
   "templates": [
     {
-      "metadata": {
-        "id": "1",
-        "name": "Like Kong Kong Pair",
-        "description": "Like kongs and Pair in different suits with matching dragons and flower pair",
-        "category": "ANY LIKE NUMBERS",
-        "image": "<black>FF <green>1111 D <red>1111 D <black>11"
-      },
-      "variations": [
-        {
-          "tiles": [],
-          "name": "Like Kong Kong Pair",
-          "description": " undefined pair"
-        },
-        {
-          "tiles": [],
-          "name": "Like Kong Kong Pair",
-          "description": " s1 pair"
-        }
-      ]
+      "metadata": {},
+      "variations": []
     }
   ]
 }

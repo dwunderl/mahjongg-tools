@@ -7,7 +7,7 @@ module.exports = {
   collectCoverage: true,
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
-    'compile.js'
+    'clean-compiler.js'
   ],
   reporters: [
     'default',

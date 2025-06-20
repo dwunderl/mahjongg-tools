@@ -1,32 +1,34 @@
 // p3 k6 p6 k9 - s1 s1 s2 s3
-metadata =
+metadata {
     category = "369"
     catid = "1b"
     image = "<green>333 6666 <red>666 <black>9999"
     name = "p3 k6 p6 k9 in 3 suits"
     description = "Pung of 3s, Kong of 6s (same suit), Pung of 6s (different suit), Kong of 9s"
+}
 
-Variations =
-// MTL code defines the set of valid variations
-// Define the suits we'll be using
-suits = (b, c, d)  // b=bamboo, c=characters, d=dots
+variations {
+    // MTL code defines the set of valid variations
+    // Define the suits we'll be using
+    suits = (b, c, d)  // b=bamboo, c=characters, d=dots
 
-// For each permutation of the three suits
-// This generates all possible orderings of the suits
-foreach (p in permutations(suits)):
-    // Assign suits to positions
-    s1 = p[0]  // First suit for pung(3) and kong(6)
-    s2 = p[1]  // Second suit for pung(6)
-    s3 = p[2]  // Third suit for kong(9)
-    
-    // Create the variation by adding tile groups
-    pung(3, s1)     // Pung of 3s in first suit (3 tiles)
-    kong(6, s1)     // Kong of 6s in first suit (4 tiles)
-    pung(6, s2)     // Pung of 6s in second suit (3 tiles)
-    kong(9, s3)     // Kong of 9s in third suit (4 tiles)
-    
-    // Total tiles: 3 + 4 + 3 + 4 = 14 tiles
-End:
+    // For each permutation of the three suits
+    // This generates all possible orderings of the suits
+    foreach (p in permutations(suits)) {
+        // Assign suits to positions
+        s1 = p[0]  // First suit for pung(3) and kong(6)
+        s2 = p[1]  // Second suit for pung(6)
+        s3 = p[2]  // Third suit for kong(9)
+        
+        // Create the variation by adding tile groups
+        pung(3, s1)     // Pung of 3s in first suit (3 tiles)
+        kong(6, s1)     // Kong of 6s in first suit (4 tiles)
+        pung(6, s2)     // Pung of 6s in second suit (3 tiles)
+        kong(9, s3)     // Kong of 9s in third suit (4 tiles)
+        
+        // Total tiles: 3 + 4 + 3 + 4 = 14 tiles
+    }
+}
 
 // This template should generate 6 variations (3! = 6 permutations of 3 suits)
 // Each variation maintains the same pattern but with different suit combinations

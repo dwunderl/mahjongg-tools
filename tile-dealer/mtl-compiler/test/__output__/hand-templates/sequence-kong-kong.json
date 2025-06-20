@@ -1,20 +1,8 @@
 {
   "templates": [
     {
-      "metadata": {
-        "id": "7",
-        "name": "Sequence Kong Kong",
-        "description": "Sequence of 5, 2 Kongs matching first number",
-        "category": "Consecutive Run",
-        "image": "<green>112345 <red>1111 <black>1111"
-      },
-      "variations": [
-        {
-          "tiles": [],
-          "name": "Sequence Kong Kong",
-          "description": " s1 pair"
-        }
-      ]
+      "metadata": {},
+      "variations": []
     }
   ]
 }

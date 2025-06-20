@@ -2,7 +2,7 @@
   "name": "mtl-compiler",
   "version": "1.0.0",
   "description": "This compiler processes Mahjong hand templates written in MTL and generates all possible variations of those hands in JSON format.",
-  "main": "compile.js",
+  "main": "clean-compiler.js",
   "directories": {
     "test": "test"
   },

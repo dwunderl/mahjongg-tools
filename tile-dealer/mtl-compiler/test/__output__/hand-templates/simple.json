@@ -1,19 +1,8 @@
 {
   "templates": [
     {
-      "metadata": {
-        "id": "test1",
-        "name": "Simple Test Template",
-        "description": "A simple test template",
-        "category": "Test"
-      },
-      "variations": [
-        {
-          "tiles": [],
-          "name": "Simple Test Template",
-          "description": " s pair"
-        }
-      ]
+      "metadata": {},
+      "variations": []
     }
   ]
 }

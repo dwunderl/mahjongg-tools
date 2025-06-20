@@ -1,17 +1,39 @@
 {
-  "templates": [
+  "type": "Program",
+  "metadata": {
+    "category": "Test",
+    "catid": "test1",
+    "name": "Simple Test Template",
+    "description": "A simple test template"
+  },
+  "variations": [
     {
-      "metadata": {
-        "id": "test1",
-        "name": "Simple Test Template",
-        "description": "A simple test template",
-        "category": "Test"
-      },
-      "variations": [
+      "type": "variation",
+      "calls": [
         {
-          "tiles": [],
-          "name": "Simple Test Template",
-          "description": " s pair"
+          "type": "pair",
+          "number": 1,
+          "suit": "b"
+        }
+      ]
+    },
+    {
+      "type": "variation",
+      "calls": [
+        {
+          "type": "pair",
+          "number": 1,
+          "suit": "c"
+        }
+      ]
+    },
+    {
+      "type": "variation",
+      "calls": [
+        {
+          "type": "pair",
+          "number": 1,
+          "suit": "d"
         }
       ]
     }

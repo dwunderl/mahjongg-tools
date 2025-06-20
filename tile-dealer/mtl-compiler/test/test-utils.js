@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { compileMTL } = require('../compile');
+const { compileMTL } = require('../clean-compiler');
 
 const FIXTURES_DIR = path.join(__dirname, '__fixtures__');
 const OUTPUT_DIR = path.join(__dirname, '__output__');

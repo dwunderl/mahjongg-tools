@@ -1,19 +1,8 @@
 {
   "templates": [
     {
-      "metadata": {
-        "id": "p3k6p6k9",
-        "name": "Pung of 3, Kong of 6, Pung of 6, Kong of 9",
-        "description": "A hand with one pung of 3s, one kong of 6s, one pung of 6s, and one kong of 9s",
-        "category": "Standard"
-      },
-      "variations": [
-        {
-          "tiles": [],
-          "name": "Pung of 3, Kong of 6, Pung of 6, Kong of 9",
-          "description": " 1 pair"
-        }
-      ]
+      "metadata": {},
+      "variations": []
     }
   ]
 }

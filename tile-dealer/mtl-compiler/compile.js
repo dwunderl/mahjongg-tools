@@ -92,12 +92,19 @@ class MTLLexer {
                 // Check for keywords (case-insensitive)
                 const lowerIdent = ident.toLowerCase();
                 const keywords = {
+                    'metadata': 'METADATA',
+                    'variations': 'VARIATIONS',
                     'foreach': 'FOREACH',
                     'in': 'IN',
-                    'permutations': 'PERMUTATIONS',
-                    'suits': 'SUITS',
+                    'pair': 'PAIR',
                     'pung': 'PUNG',
                     'kong': 'KONG',
+                    'quint': 'QUINT',
+                    'sequence': 'SEQUENCE',
+                    'suits': 'SUITS',
+                    'true': 'BOOLEAN',
+                    'false': 'BOOLEAN',
+                    'null': 'NULL',
                     'pair': 'PAIR',
                     'single': 'SINGLE',
                     'complement': 'COMPLEMENT',
@@ -203,29 +210,29 @@ class MTLParser {
     constructor(tokens) {
         this.tokens = tokens;
         this.position = 0;
-        this.metadata = {};
-        this.ast = [];
-        this.variations = [];
+        this.ast = {
+            type: 'Program',
+            metadata: {},
+            variations: []
+        };
     }
     
     currentToken() {
+        if (this.position >= this.tokens.length) return null;
         return this.tokens[this.position];
     }
     
-    eat(tokenType) {
-        this.skipWhitespaceAndComments();
-        
-        if (this.position >= this.tokens.length) {
+    eat(tokenType, value = null) {
+        const token = this.currentToken();
+        if (!token) {
             throw new Error(`Unexpected end of input, expected ${tokenType}`);
         }
         
-        const token = this.currentToken();
-        if (token.type !== tokenType) {
-            throw new Error(`Expected ${tokenType}, got ${token.type}`);
+        if (token.type !== tokenType || (value !== null && token.value !== value)) {
+            throw new Error(`Expected ${tokenType}${value ? ' ' + value : ''}, got ${token.type} ${token.value}`);
         }
         
         this.position++;
-        this.skipWhitespaceAndComments();
         return token;
     }
     
@@ -238,44 +245,140 @@ class MTLParser {
             this.position++;
         }
     }
+    
+    parseMetadata() {
+        this.eat('IDENTIFIER', 'metadata');
+        this.eat('EQUALS');
+        this.eat('LBRACE');
+        
+        while (true) {
+            this.skipWhitespaceAndComments();
+            const keyToken = this.currentToken();
+            if (keyToken.type === 'RBRACE') break;
+            
+            const key = keyToken.value;
+            this.eat('IDENTIFIER');
+            this.eat('COLON');
+            
+            const valueToken = this.currentToken();
+            let value;
+            
+            if (valueToken.type === 'STRING') {
+                value = valueToken.value;
+                this.eat('STRING');
+            } else if (valueToken.type === 'NUMBER') {
+                value = parseFloat(valueToken.value);
+                this.eat('NUMBER');
+            } else if (valueToken.type === 'IDENTIFIER') {
+                value = valueToken.value;
+                this.eat('IDENTIFIER');
+            } else {
+                throw new Error(`Unexpected token in metadata: ${JSON.stringify(valueToken)}`);
+            }
+            
+            this.ast.metadata[key] = value;
+            
+            // Check for comma or closing brace
+            this.skipWhitespaceAndComments();
+            const nextToken = this.currentToken();
+            if (nextToken?.type === 'COMMA') {
+                this.eat('COMMA');
+            } else if (nextToken?.type !== 'RBRACE') {
+                throw new Error('Expected comma or closing brace after metadata value');
+            }
+        }
+        
+        this.eat('RBRACE');
+    }
+    
+    parseVariations() {
+        this.eat('IDENTIFIER', 'variations');
+        this.eat('EQUALS');
+        this.eat('LBRACE');
+        
+        // Skip whitespace and comments
+        this.skipWhitespaceAndComments();
+        
+        // Look for 'suits' definition
+        const suitsToken = this.currentToken();
+        if (suitsToken.type === 'IDENTIFIER' && suitsToken.value === 'suits') {
+            this.eat('IDENTIFIER');
+            this.eat('EQUALS');
+            this.eat('LBRACKET');
+            
+            const suits = [];
+            while (true) {
+                const suitToken = this.currentToken();
+                if (suitToken.type === 'RBRACKET') break;
+                
+                if (suitToken.type === 'IDENTIFIER' && ['b', 'c', 'd'].includes(suitToken.value)) {
+                    suits.push(suitToken.value);
+                    this.eat('IDENTIFIER');
+                } else {
+                    throw new Error(`Unexpected token in suits array: ${JSON.stringify(suitToken)}`);
+                }
+                
+                const nextToken = this.currentToken();
+                if (nextToken.type === 'COMMA') {
+                    this.eat('COMMA');
+                } else if (nextToken.type !== 'RBRACKET') {
+                    throw new Error('Expected comma or closing bracket in suits array');
+                }
+            }
+            this.eat('RBRACKET');
+            
+            // Process foreach loop
+            this.skipWhitespaceAndComments();
+            this.eat('FOREACH');
+            this.eat('LPAREN');
+            const varName = this.eat('IDENTIFIER').value;
+            this.eat('IN');
+            this.eat('IDENTIFIER', 'suits');
+            this.eat('RPAREN');
+            this.eat('LBRACE');
+            
+            // Parse the foreach body
+            this.skipWhitespaceAndComments();
+            const funcCallToken = this.currentToken();
+            if (funcCallToken.type === 'PAIR') {
+                this.eat('PAIR');
+                this.eat('LPAREN');
+                const number = parseInt(this.eat('NUMBER').value);
+                this.eat('COMMA');
+                const suitVar = this.eat('IDENTIFIER').value;
+                this.eat('RPAREN');
+                
+                // Generate variations for each suit
+                for (const suit of suits) {
+                    this.ast.variations.push({
+                        type: 'variation',
+                        calls: [{
+                            type: 'pair',
+                            number,
+                            suit: suit
+                        }]
+                    });
+                }
+            }
+            
+            this.eat('RBRACE');
+        }
+        
+        this.eat('RBRACE');
+    }
 
     parse() {
         console.log('Starting parse()');
-        // Skip any initial whitespace or comments
-        this.skipWhitespaceAndComments();
         
-        // Look for 'metadata' keyword
-        const metadataToken = this.currentToken();
-        if (!metadataToken || metadataToken.type !== 'METADATA') {
-            throw new Error('Expected "metadata =" at the beginning of the file');
-        }
-        this.position++; // Skip 'metadata'
+        // Parse metadata block
+        this.parseMetadata();
         
-        // Skip any whitespace or comments before '='
-        this.skipWhitespaceAndComments();
-        this.eat('EQUALS');
+        // Parse variations block
+        this.parseVariations();
         
-        // Skip any whitespace or comments after '='
-        this.skipWhitespaceAndComments();
-        
-        // Expect an opening brace for the metadata object
-        this.eat('LBRACE');
-        this.skipWhitespaceAndComments();
-        
-        // Parse metadata key-value pairs
-        while (this.position < this.tokens.length) {
-            const token = this.currentToken();
-            
-            // Check for closing brace
-            if (token.type === 'RBRACE') {
-                this.position++; // Skip '}'
-                break;
-            }
-            
-            // Parse key-value pair
-            if (token.type === 'IDENTIFIER' || token.type === 'STRING') {
-                const key = token.value;
-                this.position++;
+        console.log('AST:', JSON.stringify(this.ast, null, 2));
+        return this.ast;
+    }
                 
                 // Skip any whitespace or comments before ':'
                 this.skipWhitespaceAndComments();
@@ -301,51 +404,118 @@ class MTLParser {
                 this.metadata[key] = value;
                 this.position++; // Skip the value
                 
-                // Check for comma or closing brace
-                this.skipWhitespaceAndComments();
-                const nextToken = this.currentToken();
-                if (nextToken?.type === 'COMMA') {
-                    this.position++; // Skip comma
-                } else if (nextToken?.type !== 'RBRACE') {
-                    throw new Error('Expected comma or closing brace after metadata value');
-                }
-            } else {
-                throw new Error(`Unexpected token in metadata: ${token.type}`);
-            }
-            
-            this.skipWhitespaceAndComments();
-        }
-        
-        // Look for 'Variations:' section
-        this.skipWhitespaceAndComments();
-        const variationsToken = this.currentToken();
-        if (!variationsToken || variationsToken.type !== 'VARIATIONS') {
-            throw new Error('Expected "Variations:" after metadata');
-        }
-        
-        // Skip the 'Variations:' token and colon
-        this.position++;
-        this.skipWhitespaceAndComments();
-        if (this.currentToken()?.type === 'COLON') {
-            this.position++;
-        }
         
         // Initialize AST
         const ast = {
-            type: 'Program',
-            metadata: this.metadata,
+            type: 'PROGRAM',
             body: [],
+            metadata: {},
             variations: []
         };
         
-        // Parse the MTL code
+        this.ast = ast;
+        
+        // Initialize statements array
         const statements = [];
+        
+        // First, find and parse metadata block if it exists
+        const metadataTokenIndex = this.tokens.findIndex(t => t.type === 'IDENTIFIER' && t.value === 'metadata');
+        if (metadataTokenIndex !== -1) {
+            this.position = metadataTokenIndex;
+            console.log('Found metadata block');
+            this.position++; // Skip 'metadata'
+            this.eat('EQUALS');
+            this.eat('LBRACE');
+            
+            // Parse metadata properties
+            while (this.position < this.tokens.length) {
+                const propToken = this.currentToken();
+                if (!propToken) break;
+                
+                // Check for end of metadata block
+                if (propToken.type === 'RBRACE') {
+                    this.position++; // Skip '}'
+                    break;
+                }
+                
+                // Skip whitespace and comments
+                if (propToken.type === 'WHITESPACE' || propToken.type === 'COMMENT') {
+                    this.position++;
+                    continue;
+                }
+                
+                if (propToken.type === 'IDENTIFIER') {
+                    const propName = propToken.value;
+                    this.position++; // Skip identifier
+                    this.eat('COLON');
+                    
+                    // Get the property value (can be string, number, or identifier)
+                    const valueToken = this.currentToken();
+                    let value;
+                    
+                    if (valueToken.type === 'STRING') {
+                        value = valueToken.value;
+                    } else if (valueToken.type === 'NUMBER') {
+                        value = parseFloat(valueToken.value);
+                    } else if (valueToken.type === 'IDENTIFIER') {
+                        value = valueToken.value;
+                    } else {
+                        throw new Error(`Unexpected token in metadata: ${JSON.stringify(valueToken)}`);
+                    }
+                    
+                    // Store the metadata property
+                    ast.metadata[propName] = value;
+                    this.position++; // Skip the value token
+                    
+                    // Check for comma or closing brace
+                    this.skipWhitespaceAndComments();
+                    const nextToken = this.currentToken();
+                    if (nextToken?.type === 'COMMA') {
+                        this.position++; // Skip comma
+                    } else if (nextToken?.type !== 'RBRACE') {
+                        throw new Error('Expected comma or closing brace after metadata value');
+                    }
+                } else {
+                    this.position++;
+                }
+            }
+        }
+        
+        // Reset position to start of file
+        this.position = 0;
+        
+        // Find variations block
+        const variationsTokenIndex = this.tokens.findIndex(t => t.type === 'IDENTIFIER' && t.value === 'variations');
+        if (variationsTokenIndex !== -1) {
+            this.position = variationsTokenIndex;
+            console.log('Found variations block');
+            this.position++; // Skip 'variations'
+            this.eat('EQUALS');
+            this.eat('LBRACE');
+        }
+        
+        // Process all tokens after metadata and variations blocks
         while (this.position < this.tokens.length) {
             const token = this.currentToken();
-            console.log(`Current position: ${this.position}/${this.tokens.length}, current token:`, token);
+            console.log('Current token:', token);
             
+            if (!token) break;
+            
+            // Skip whitespace and comments
+            if (token.type === 'WHITESPACE' || token.type === 'COMMENT') {
+                this.position++;
+                continue;
+            }
+            
+            // Check for end of variations block
+            if (token.type === 'RBRACE') {
+                this.position++;
+                continue;
+            }
+            
+            // Handle different types of statements
             if (token.type === 'FOREACH') {
-                console.log('Found FOREACH token, parsing...');
+                console.log('Found FOREACH statement');
                 const forEachNode = this.parseForEach();
                 console.log('Finished parsing FOREACH');
                 statements.push(forEachNode);
@@ -533,18 +703,29 @@ class MTLParser {
         const body = this.parseBodyTokens(bodyTokens);
         console.log('parseForEachBody - parsed body:', JSON.stringify(body, null, 2));
         
+        // Create variations for each function call in the body
+        const variations = [];
+        if (body.calls && body.calls.length > 0) {
+            // For each function call, create a separate variation
+            for (const call of body.calls) {
+                variations.push({
+                    calls: [call]
+                });
+            }
+        }
+        
         // If we found variations in the body, add them to the AST
-        if (body.variations && body.variations.length > 0) {
+        if (variations.length > 0) {
             if (!this.ast.variations) {
                 this.ast.variations = [];
             }
-            console.log('parseForEachBody - adding variations to AST:', body.variations);
-            this.ast.variations.push(...body.variations);
+            console.log('parseForEachBody - adding variations to AST:', variations);
+            this.ast.variations.push(...variations);
             
             // Return the parsed body with variations
             return {
                 type: 'FOREACH_BODY',
-                variations: body.variations,
+                variations: variations,
                 tokens: bodyTokens
             };
         }
